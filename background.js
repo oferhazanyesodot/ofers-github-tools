@@ -74,6 +74,10 @@ async function syncPRs() {
   try {
     await synchronizeBookmarks(prs);
     await setStatus("ok", `Synced ${prs.length} PRs at ${new Date().toLocaleTimeString()}`);
+    // Show PR count on the extension badge
+    const badgeText = prs.length > 0 ? String(prs.length) : "";
+    await chrome.action.setBadgeText({ text: badgeText });
+    await chrome.action.setBadgeBackgroundColor({ color: "#1f6feb" });
   } catch (err) {
     console.error("[GitHub PR Bookmarks] Bookmark sync error:", err.message);
     await setStatus("error", err.message);

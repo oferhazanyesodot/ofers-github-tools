@@ -147,11 +147,11 @@ The extension handles failures gracefully:
 | `background.js` | Service worker: fetch, parse JSON, sync bookmarks |
 | `offscreen.html` | Offscreen document shell (for HTML fallback parsing) |
 | `offscreen.js` | HTML/DOM parsing logic (fallback if JSON unavailable) |
-| `popup.html` | Extension popup UI |
+| `popup.html` | Extension popup UI (light/dark mode) |
 | `popup.js` | Popup interaction logic |
-| `icons/` | Extension icons |
-| `create-icons.js` | Icon generation script |
-| `generate-icons.html` | Alternative browser-based icon generator |
+| `icons/` | Extension icons (white PR icon) |
+| `create-icons.js` | Icon generation script (dev tool) |
+| `PRIVACY.md` | Privacy policy for Web Store listing |
 
 ## Attribution & Inspiration
 
