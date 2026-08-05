@@ -49,6 +49,8 @@ With `Accept: application/json`, GitHub returns the same data that powers its Re
 
 ## Installation
 
+### Chrome
+
 1. Clone or download this repository
 2. Generate icons (requires Node.js): `node scripts/create-icons.js`
 3. Open `chrome://extensions/` in Chrome
@@ -56,6 +58,18 @@ With `Accept: application/json`, GitHub returns the same data that powers its Re
 5. Click "Load unpacked"
 6. Select the extension root directory
 7. Ensure you are logged in to GitHub in Chrome
+
+### Firefox
+
+1. Clone or download this repository
+2. Generate icons: `node scripts/create-icons.js`
+3. Build the Firefox version: `node scripts/build-firefox.js`
+4. Open `about:debugging#/runtime/this-firefox` in Firefox
+5. Click "Load Temporary Add-on"
+6. Select `firefox/manifest.json`
+7. Ensure you are logged in to GitHub in Firefox
+
+To package for Firefox Add-ons (AMO): `cd firefox && zip -r ../github-pr-bookmark-folder-firefox.zip .`
 
 The extension will immediately sync your open PRs into a "GitHub PRs" bookmark folder.
 
@@ -201,7 +215,8 @@ The extension handles failures gracefully:
 │       └── options.js            Settings logic
 ├── scripts/
 │   ├── create-icons.js           Icon generation (dev tool)
-│   └── create-store-assets.js   Store asset generation (dev tool)
+│   ├── create-store-assets.js   Store asset generation (dev tool)
+│   └── build-firefox.js         Firefox build script
 ├── PRIVACY.md                    Privacy policy
 └── README.md
 ```

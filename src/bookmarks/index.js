@@ -17,7 +17,8 @@ import { getSettings } from "../shared/settings.js";
  */
 export async function synchronizeBookmarks(prs) {
   const settings = await getSettings();
-  const rootFolder = await getOrCreateFolder(settings.folderName, "1");
+  const barId = await getBookmarksBarId();
+  const rootFolder = await getOrCreateFolder(settings.folderName, barId);
 
   // Separate stale PRs if threshold is configured
   const { current, stale } = partitionByAge(prs, settings.staleThresholdDays);
@@ -147,6 +148,21 @@ function partitionByAge(prs, thresholdDays) {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Get the Bookmarks Bar/Toolbar folder ID.
+ * Chrome uses "1", Firefox uses "toolbar_____".
+ */
+async function getBookmarksBarId() {
+  // Try Firefox's toolbar GUID first
+  try {
+    const results = await chrome.bookmarks.get("toolbar_____");
+    if (results && results.length > 0) return "toolbar_____";
+  } catch (_) { /* not Firefox */ }
+
+  // Chrome: Bookmarks Bar is always "1"
+  return "1";
+}
 
 async function getOrCreateFolder(name, parentId) {
   const results = await chrome.bookmarks.search({ title: name });
