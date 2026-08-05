@@ -25,6 +25,8 @@ export async function synchronizeBookmarks(prs) {
   if (settings.groupByRepo) {
     await syncGroupedByRepo(rootFolder, current, settings);
   } else {
+    // Clean up any leftover repo subfolders from when groupByRepo was enabled
+    await removeSubfolders(rootFolder.id, ["Old PRs"]);
     await syncFlat(rootFolder, current, settings);
   }
 
@@ -162,6 +164,21 @@ async function removeEmptyFolder(name, parentId) {
       if (children.length === 0) {
         await chrome.bookmarks.removeTree(node.id);
       }
+    }
+  }
+}
+
+/**
+ * Remove all subfolders inside a parent, except those in the preserve list.
+ * Used when switching from grouped mode to flat mode.
+ */
+async function removeSubfolders(parentId, preserve = []) {
+  const children = await chrome.bookmarks.getChildren(parentId);
+  const preserveSet = new Set(preserve);
+
+  for (const child of children) {
+    if (!child.url && !preserveSet.has(child.title)) {
+      await chrome.bookmarks.removeTree(child.id);
     }
   }
 }
