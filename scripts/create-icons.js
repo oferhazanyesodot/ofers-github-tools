@@ -178,7 +178,7 @@ function crc32(buf) {
 
 // ─── Generate ────────────────────────────────────────────────────────────────
 
-const iconsDir = path.join(__dirname, "icons");
+const iconsDir = path.join(__dirname, "..", "icons");
 if (!fs.existsSync(iconsDir)) {
   fs.mkdirSync(iconsDir);
 }

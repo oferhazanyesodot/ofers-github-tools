@@ -50,11 +50,11 @@ With `Accept: application/json`, GitHub returns the same data that powers its Re
 ## Installation
 
 1. Clone or download this repository
-2. Generate icons (requires Node.js): `node create-icons.js`
+2. Generate icons (requires Node.js): `node scripts/create-icons.js`
 3. Open `chrome://extensions/` in Chrome
 4. Enable "Developer mode" (top-right toggle)
 5. Click "Load unpacked"
-6. Select the extension directory
+6. Select the extension root directory
 7. Ensure you are logged in to GitHub in Chrome
 
 The extension will immediately sync your open PRs into a "GitHub PRs" bookmark folder.
@@ -141,17 +141,40 @@ The extension handles failures gracefully:
 
 ## Files
 
-| File | Purpose |
-|---|---|
-| `manifest.json` | Extension manifest (Manifest V3) |
-| `background.js` | Service worker: fetch, parse JSON, sync bookmarks |
-| `offscreen.html` | Offscreen document shell (for HTML fallback parsing) |
-| `offscreen.js` | HTML/DOM parsing logic (fallback if JSON unavailable) |
-| `popup.html` | Extension popup UI (light/dark mode) |
-| `popup.js` | Popup interaction logic |
-| `icons/` | Extension icons (white PR icon) |
-| `create-icons.js` | Icon generation script (dev tool) |
-| `PRIVACY.md` | Privacy policy for Web Store listing |
+```
+├── manifest.json                 Extension manifest (MV3, ES modules)
+├── icons/                        Extension icons (generated)
+├── src/
+│   ├── background/
+│   │   ├── index.js              Service worker entry — lifecycle + message routing
+│   │   ├── alarm.js              Alarm scheduling
+│   │   └── sync.js              Sync orchestration (fetch → bookmarks → badge)
+│   ├── fetcher/
+│   │   ├── index.js              Fetch strategies (JSON primary, HTML fallback)
+│   │   └── parser.js            JSON payload extraction logic
+│   ├── bookmarks/
+│   │   └── index.js              Bookmark folder sync engine
+│   ├── shared/
+│   │   ├── constants.js          Shared constants
+│   │   ├── settings.js           User settings (read/write chrome.storage.sync)
+│   │   └── status.js            Sync status persistence
+│   ├── offscreen/
+│   │   ├── offscreen.html        Offscreen document shell
+│   │   └── offscreen.js         DOM-based HTML parser (fallback)
+│   ├── popup/
+│   │   ├── popup.html            Extension popup
+│   │   ├── popup.css             Popup styles (light/dark)
+│   │   └── popup.js             Popup logic
+│   └── options/
+│       ├── options.html           Settings page
+│       ├── options.css            Settings styles (light/dark)
+│       └── options.js            Settings logic
+├── scripts/
+│   ├── create-icons.js           Icon generation (dev tool)
+│   └── create-store-assets.js   Store asset generation (dev tool)
+├── PRIVACY.md                    Privacy policy
+└── README.md
+```
 
 ## Attribution & Inspiration
 

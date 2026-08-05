@@ -218,7 +218,7 @@ function crc32(buf) {
 
 // ─── Generate ────────────────────────────────────────────────────────────────
 
-const outDir = path.join(__dirname, "store-assets");
+const outDir = path.join(__dirname, "..", "store-assets");
 if (!fs.existsSync(outDir)) {
   fs.mkdirSync(outDir);
 }
