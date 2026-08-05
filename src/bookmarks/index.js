@@ -20,8 +20,14 @@ export async function synchronizeBookmarks(prs) {
   const barId = await getBookmarksBarId();
   const rootFolder = await getOrCreateFolder(settings.folderName, barId);
 
+  // Sort: non-drafts first, drafts at the end
+  const sorted = [...prs].sort((a, b) => {
+    if (a.isDraft === b.isDraft) return 0;
+    return a.isDraft ? 1 : -1;
+  });
+
   // Separate stale PRs if threshold is configured
-  const { current, stale } = partitionByAge(prs, settings.staleThresholdDays);
+  const { current, stale } = partitionByAge(sorted, settings.staleThresholdDays);
 
   if (settings.groupByRepo) {
     await syncGroupedByRepo(rootFolder, current, settings);

@@ -68,7 +68,13 @@ async function loadPRList() {
     return;
   }
 
-  prListEl.innerHTML = prs.map((pr) => renderPRItem(pr)).join("");
+  // Sort: non-drafts first, drafts at the end
+  const sorted = [...prs].sort((a, b) => {
+    if (a.isDraft === b.isDraft) return 0;
+    return a.isDraft ? 1 : -1;
+  });
+
+  prListEl.innerHTML = sorted.map((pr) => renderPRItem(pr)).join("");
 
   // Add click-to-copy handlers
   prListEl.querySelectorAll(".pr-copy").forEach((btn) => {
