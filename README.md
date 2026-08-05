@@ -1,6 +1,6 @@
 # GitHub PR Bookmark Folder
 
-A Chrome extension (Manifest V3) that automatically maintains a bookmark folder containing your open GitHub Pull Requests.
+A Chrome extension that automatically maintains a bookmark folder containing your open GitHub Pull Requests.
 
 **No OAuth. No API tokens. No GitHub Apps. No backend. No admin approval required.**
 
