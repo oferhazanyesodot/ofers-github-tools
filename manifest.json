@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "GitHub PR Bookmark Folder",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Automatically maintains a bookmark folder with your open GitHub Pull Requests, using your existing GitHub session.",
   "permissions": [
     "bookmarks",
