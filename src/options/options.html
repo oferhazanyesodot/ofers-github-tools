@@ -40,6 +40,42 @@
     <p class="hint">The folder created in your Bookmarks Bar.</p>
   </fieldset>
 
+  <fieldset>
+    <legend>Display</legend>
+    <div class="checkbox-row">
+      <input type="checkbox" id="show-draft" checked>
+      <label for="show-draft">Show [DRAFT] indicator for draft PRs</label>
+    </div>
+    <div class="checkbox-row">
+      <input type="checkbox" id="group-by-repo">
+      <label for="group-by-repo">Group bookmarks by repository (subfolders)</label>
+    </div>
+    <div class="checkbox-row">
+      <input type="checkbox" id="notifications" checked>
+      <label for="notifications">Desktop notification for new PRs</label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Stale PRs</legend>
+    <div class="row">
+      <label for="stale-days">Move to "Old PRs" after</label>
+      <input type="number" id="stale-days" min="0" max="365" value="0">
+      <span>days</span>
+    </div>
+    <p class="hint">Set to 0 to disable. PRs not updated for this many days will be moved to a subfolder.</p>
+  </fieldset>
+
+  <fieldset>
+    <legend>Import / Export</legend>
+    <p class="hint">Share your configuration across devices or back it up.</p>
+    <div class="actions" style="margin-top: 8px; margin-bottom: 8px;">
+      <button class="btn-secondary" id="export-btn">Export Settings</button>
+      <button class="btn-secondary" id="import-btn">Import Settings</button>
+    </div>
+    <textarea id="import-export-area" rows="4" placeholder="Paste JSON here to import…"></textarea>
+  </fieldset>
+
   <div class="actions">
     <button class="btn-primary" id="save-btn">Save Settings</button>
     <button class="btn-secondary" id="reset-btn">Reset to Defaults</button>

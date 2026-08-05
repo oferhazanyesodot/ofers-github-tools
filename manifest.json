@@ -1,13 +1,14 @@
 {
   "manifest_version": 3,
   "name": "GitHub PR Bookmark Folder",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Automatically maintains a bookmark folder with your open GitHub Pull Requests, using your existing GitHub session.",
   "permissions": [
     "bookmarks",
     "alarms",
     "storage",
-    "offscreen"
+    "offscreen",
+    "notifications"
   ],
   "host_permissions": [
     "https://github.com/*"
@@ -32,5 +33,13 @@
   "options_ui": {
     "page": "src/options/options.html",
     "open_in_tab": true
+  },
+  "commands": {
+    "sync-now": {
+      "suggested_key": {
+        "default": "Alt+Shift+P"
+      },
+      "description": "Sync PRs now"
+    }
   }
 }

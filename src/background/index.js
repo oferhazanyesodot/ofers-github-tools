@@ -27,19 +27,27 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   }
 });
 
+// ─── Keyboard Shortcut ───────────────────────────────────────────────────────
+
+chrome.commands.onCommand.addListener(async (command) => {
+  if (command === "sync-now") {
+    await syncPRs();
+  }
+});
+
 // ─── Message Router ──────────────────────────────────────────────────────────
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   switch (message.action) {
     case "syncNow":
       syncPRs().then(() => sendResponse({ done: true }));
-      return true; // keep channel open for async
+      return true;
 
     case "settingsChanged":
       setupAlarm().then(() => syncPRs()).then(() => sendResponse({ done: true }));
       return true;
 
     default:
-      return false; // not handled
+      return false;
   }
 });

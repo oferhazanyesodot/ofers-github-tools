@@ -63,12 +63,41 @@ The extension will immediately sync your open PRs into a "GitHub PRs" bookmark f
 
 ```
 GitHub PRs/
+├── [DRAFT] repo-name - WIP feature branch
 ├── repo-name - Fix login bug
 ├── another-repo - Add unit tests
 └── my-project - Update documentation
 ```
 
+With **Group by Repo** enabled:
+```
+GitHub PRs/
+├── repo-name/
+│   ├── [DRAFT] WIP feature branch
+│   └── Fix login bug
+├── another-repo/
+│   └── Add unit tests
+└── Old PRs/
+    └── my-project - Stale feature
+```
+
 Bookmarks are ordered by most recently updated (matching GitHub's sort order).
+
+## Features
+
+- **Automatic sync** — PRs sync every N minutes (configurable, default 5)
+- **Draft indicator** — `[DRAFT]` prefix on draft PRs
+- **Group by repo** — optional subfolders per repository
+- **Desktop notifications** — alerts when new PRs appear (e.g., review requests)
+- **Stale PR detection** — PRs untouched for X days move to an "Old PRs" subfolder
+- **PR list in popup** — click to open, copy URL button, relative timestamps
+- **Keyboard shortcut** — `Alt+Shift+P` to trigger sync instantly
+- **Configurable query** — presets for "My PRs", "Review Requested", "Assigned", "Mentions"
+- **Custom folder name** — name the bookmark folder whatever you want
+- **Import/export settings** — share config as JSON
+- **Badge count** — number of open PRs shown on the extension icon
+- **Light/dark mode** — popup and settings page follow your system theme
+- **Graceful failure** — never destroys bookmarks on errors
 
 ## Why OAuth Is Intentionally Avoided
 
@@ -103,9 +132,10 @@ This extension **requires zero administrator approval** because:
 | Permission | Why |
 |---|---|
 | `bookmarks` | Create and manage the PR bookmark folder |
-| `alarms` | Schedule periodic sync every 5 minutes |
-| `storage` | Store last sync status for the popup |
+| `alarms` | Schedule periodic sync |
+| `storage` | Store sync status, PR list, and settings |
 | `offscreen` | Create offscreen document for HTML fallback parsing |
+| `notifications` | Desktop alerts for new PRs (optional, can be disabled) |
 | `https://github.com/*` | Fetch the PR listing page with session cookies |
 
 No other permissions are requested. Specifically:
@@ -122,7 +152,7 @@ No other permissions are requested. Specifically:
 
 3. **Rate limiting** — Fetching a page every 5 minutes is very conservative, but GitHub could theoretically rate-limit aggressive use. The extension makes exactly one request per sync cycle.
 
-4. **No real-time updates** — Changes appear within 5 minutes, not instantly. You can click "Sync Now" in the popup for immediate updates.
+4. **No real-time updates** — Changes appear within your configured interval (default 5 min). Use "Sync Now" or `Alt+Shift+P` for immediate updates.
 
 5. **Service Worker lifecycle** — Chrome may suspend the service worker between alarms. The alarm API ensures it wakes up reliably.
 
@@ -200,7 +230,10 @@ This extension is inspired by [PR Live Folder](https://github.com/shiruten/pr-li
 | HTML fallback parser | New; parses embedded JSON from script tags via offscreen document |
 | Manifest permissions | Reduced to minimum (no identity, no cookies) |
 | Service worker structure | Rewritten for Manifest V3 patterns |
-| Popup UI | New design matching GitHub's visual style |
+| Popup UI | New design with PR list, copy URLs, relative timestamps, dark mode |
+| Options page | Full settings: query presets, display options, import/export |
+| Notifications | Desktop alerts for new PRs |
+| Keyboard shortcut | Alt+Shift+P to sync |
 | Error handling | New; designed for fetch/parse failure modes |
 
 ### Why scraping was chosen over OAuth

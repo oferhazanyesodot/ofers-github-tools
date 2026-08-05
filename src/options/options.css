@@ -26,7 +26,7 @@ legend { font-size: 14px; font-weight: 600; padding: 0 8px; }
 label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
 .hint { font-size: 12px; color: #57606a; margin-bottom: 8px; }
 
-select, input[type="text"], input[type="number"] {
+input[type="text"], input[type="number"], textarea {
   width: 100%;
   padding: 8px 12px;
   font-size: 13px;
@@ -35,9 +35,16 @@ select, input[type="text"], input[type="number"] {
   background: #f6f8fa;
   color: #24292f;
   margin-bottom: 12px;
+  font-family: inherit;
 }
 
-input[type="number"] { width: 70px; margin-top: 15px; }
+input[type="number"] { width: 80px; margin-top: 4px; }
+
+textarea {
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11px;
+}
 
 .row {
   display: flex;
@@ -46,6 +53,28 @@ input[type="number"] { width: 70px; margin-top: 15px; }
   margin-bottom: 12px;
 }
 .row label { margin-bottom: 0; white-space: nowrap; }
+
+/* ─── Checkboxes ────────────────────────────────────────────────────────── */
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.checkbox-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #1f6feb;
+}
+
+.checkbox-row label {
+  display: inline;
+  font-weight: 400;
+  margin-bottom: 0;
+  cursor: pointer;
+}
 
 /* ─── Presets ───────────────────────────────────────────────────────────── */
 
@@ -113,7 +142,7 @@ button {
   fieldset { border-color: #30363d; }
   label { color: #e6edf3; }
 
-  select, input[type="text"], input[type="number"] {
+  input[type="text"], input[type="number"], textarea {
     border-color: #30363d;
     background: #161b22;
     color: #e6edf3;

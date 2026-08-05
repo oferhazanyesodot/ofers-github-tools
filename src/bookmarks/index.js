@@ -1,19 +1,46 @@
 /**
  * Bookmark Sync Engine
  *
- * Maintains a single bookmark folder in the Bookmarks Bar that mirrors
- * the user's open PRs. Performs incremental updates only.
+ * Maintains a bookmark folder in the Bookmarks Bar that mirrors
+ * the user's open PRs. Supports:
+ *  - Incremental updates
+ *  - Draft indicators
+ *  - Group by repo (subfolders)
+ *  - Stale PR detection (move old PRs to subfolder)
  */
 
 import { getSettings } from "../shared/settings.js";
 
 /**
  * Synchronize the bookmark folder with the given PR list.
- * @param {Array<{url: string, repo: string, title: string}>} prs
+ * @param {Array} prs - Parsed PR objects from the fetcher
  */
 export async function synchronizeBookmarks(prs) {
-  const { folderName } = await getSettings();
-  const folder = await getOrCreateFolder(folderName);
+  const settings = await getSettings();
+  const rootFolder = await getOrCreateFolder(settings.folderName, "1");
+
+  // Separate stale PRs if threshold is configured
+  const { current, stale } = partitionByAge(prs, settings.staleThresholdDays);
+
+  if (settings.groupByRepo) {
+    await syncGroupedByRepo(rootFolder, current, settings);
+  } else {
+    await syncFlat(rootFolder, current, settings);
+  }
+
+  // Handle stale PRs
+  if (settings.staleThresholdDays > 0 && stale.length > 0) {
+    const staleFolder = await getOrCreateFolder("Old PRs", rootFolder.id);
+    await syncFlat(staleFolder, stale, settings);
+  } else if (settings.staleThresholdDays > 0) {
+    // Remove stale folder if empty
+    await removeEmptyFolder("Old PRs", rootFolder.id);
+  }
+}
+
+// ─── Flat Sync ───────────────────────────────────────────────────────────────
+
+async function syncFlat(folder, prs, settings) {
   const existing = await chrome.bookmarks.getChildren(folder.id);
 
   const existingByUrl = new Map();
@@ -23,7 +50,7 @@ export async function synchronizeBookmarks(prs) {
 
   const desiredUrls = new Set(prs.map((pr) => pr.url));
 
-  // Remove stale bookmarks
+  // Remove stale bookmarks (but not subfolders)
   for (const [url, bm] of existingByUrl) {
     if (!desiredUrls.has(url)) {
       await chrome.bookmarks.remove(bm.id);
@@ -32,7 +59,7 @@ export async function synchronizeBookmarks(prs) {
 
   // Add new / update changed
   for (const pr of prs) {
-    const desiredTitle = formatTitle(pr);
+    const desiredTitle = formatTitle(pr, settings);
     const bm = existingByUrl.get(pr.url);
 
     if (bm) {
@@ -48,28 +75,97 @@ export async function synchronizeBookmarks(prs) {
     }
   }
 
-  // Reorder to match GitHub's sort order
   await reorderBookmarks(folder.id, prs);
 }
 
-// ─── Internals ───────────────────────────────────────────────────────────────
+// ─── Grouped by Repo Sync ────────────────────────────────────────────────────
 
-/**
- * Find an existing folder by name, or create one in the Bookmarks Bar.
- * Never creates duplicates.
- */
-async function getOrCreateFolder(name) {
-  const results = await chrome.bookmarks.search({ title: name });
-  const folder = results.find((node) => !node.url);
-  if (folder) return folder;
+async function syncGroupedByRepo(rootFolder, prs, settings) {
+  // Group PRs by repo name
+  const byRepo = new Map();
+  for (const pr of prs) {
+    const group = byRepo.get(pr.repo) || [];
+    group.push(pr);
+    byRepo.set(pr.repo, group);
+  }
 
-  // ID "1" is the Bookmarks Bar in Chrome
-  return await chrome.bookmarks.create({ parentId: "1", title: name });
+  const existingChildren = await chrome.bookmarks.getChildren(rootFolder.id);
+  const existingFolders = new Map();
+  const existingBookmarks = new Map();
+
+  for (const child of existingChildren) {
+    if (child.url) {
+      existingBookmarks.set(child.url, child);
+    } else {
+      existingFolders.set(child.title, child);
+    }
+  }
+
+  // Remove top-level bookmarks that should now be in subfolders
+  for (const [, bm] of existingBookmarks) {
+    await chrome.bookmarks.remove(bm.id);
+  }
+
+  // Remove repo folders that no longer have PRs
+  for (const [title, folder] of existingFolders) {
+    if (title === "Old PRs") continue; // preserve stale folder
+    if (!byRepo.has(title)) {
+      await chrome.bookmarks.removeTree(folder.id);
+    }
+  }
+
+  // Sync each repo subfolder
+  for (const [repo, repoPrs] of byRepo) {
+    const repoFolder = await getOrCreateFolder(repo, rootFolder.id);
+    await syncFlat(repoFolder, repoPrs, settings);
+  }
 }
 
-/**
- * Reorder children of a folder to match the desired PR ordering.
- */
+// ─── Stale Detection ─────────────────────────────────────────────────────────
+
+function partitionByAge(prs, thresholdDays) {
+  if (!thresholdDays || thresholdDays <= 0) {
+    return { current: prs, stale: [] };
+  }
+
+  const cutoff = Date.now() - thresholdDays * 24 * 60 * 60 * 1000;
+  const current = [];
+  const stale = [];
+
+  for (const pr of prs) {
+    const updated = new Date(pr.updatedAt).getTime();
+    if (updated < cutoff) {
+      stale.push(pr);
+    } else {
+      current.push(pr);
+    }
+  }
+
+  return { current, stale };
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+async function getOrCreateFolder(name, parentId) {
+  const results = await chrome.bookmarks.search({ title: name });
+  const folder = results.find((node) => !node.url && node.parentId === parentId);
+  if (folder) return folder;
+
+  return await chrome.bookmarks.create({ parentId, title: name });
+}
+
+async function removeEmptyFolder(name, parentId) {
+  const results = await chrome.bookmarks.search({ title: name });
+  for (const node of results) {
+    if (!node.url && node.parentId === parentId) {
+      const children = await chrome.bookmarks.getChildren(node.id);
+      if (children.length === 0) {
+        await chrome.bookmarks.removeTree(node.id);
+      }
+    }
+  }
+}
+
 async function reorderBookmarks(folderId, prs) {
   const children = await chrome.bookmarks.getChildren(folderId);
   const byUrl = new Map();
@@ -88,6 +184,10 @@ async function reorderBookmarks(folderId, prs) {
 /**
  * Format a PR into its bookmark title.
  */
-function formatTitle(pr) {
-  return `${pr.repo} - ${pr.title}`;
+function formatTitle(pr, settings) {
+  let title = `${pr.repo} - ${pr.title}`;
+  if (settings.showDraftIndicator && pr.isDraft) {
+    title = `[DRAFT] ${title}`;
+  }
+  return title;
 }

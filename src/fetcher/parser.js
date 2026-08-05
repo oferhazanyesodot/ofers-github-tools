@@ -7,9 +7,20 @@
  */
 
 /**
+ * @typedef {Object} PR
+ * @property {string} url
+ * @property {string} repo
+ * @property {string} title
+ * @property {boolean} isDraft
+ * @property {string} updatedAt - ISO date string
+ * @property {number} number
+ * @property {string} repoFullName - "owner/repo"
+ */
+
+/**
  * Extract normalized PR objects from a GitHub JSON payload.
  * @param {object} data - Parsed JSON from GitHub
- * @returns {Array<{url: string, repo: string, title: string}> | null}
+ * @returns {PR[] | null}
  */
 export function extractPRsFromPayload(data) {
   const results = findResultsArray(data);
@@ -27,7 +38,15 @@ export function extractPRsFromPayload(data) {
     const title = item.title || `PR #${item.number}`;
     const url = item.permalink || `https://github.com/${repoNameWithOwner}/pull/${item.number}`;
 
-    prs.push({ url, repo: repoName, title });
+    prs.push({
+      url,
+      repo: repoName,
+      repoFullName: repoNameWithOwner,
+      title,
+      number: item.number || 0,
+      isDraft: item.isDraft || false,
+      updatedAt: item.updatedAt || new Date().toISOString(),
+    });
   }
 
   return prs.length > 0 ? prs : null;
@@ -38,7 +57,6 @@ export function extractPRsFromPayload(data) {
  * falling back to a recursive search.
  */
 function findResultsArray(data) {
-  // Known payload structures (ordered by likelihood)
   const paths = [
     data?.payload?.pullsDashboardSurfaceContentRoute?.results,
     data?.pullsDashboardSurfaceContentRoute?.results,
@@ -51,7 +69,6 @@ function findResultsArray(data) {
     }
   }
 
-  // Deep search as last resort
   return deepFindResults(data, 0);
 }
 
