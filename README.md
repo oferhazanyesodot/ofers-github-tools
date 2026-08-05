@@ -1,0 +1,198 @@
+# GitHub PR Bookmark Folder
+
+A Chrome extension (Manifest V3) that automatically maintains a bookmark folder containing your open GitHub Pull Requests.
+
+**No OAuth. No API tokens. No GitHub Apps. No backend. No admin approval required.**
+
+## How It Works
+
+This extension uses your existing GitHub browser session to fetch the PR listing page with `Accept: application/json`, which causes GitHub to return structured JSON data directly. It creates and maintains a **"GitHub PRs"** bookmark folder in your Bookmarks Bar.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│  Chrome Extension (Manifest V3 Service Worker)       │
+│                                                      │
+│  ┌──────────┐    ┌──────────┐    ┌──────────────┐  │
+│  │  Alarm   │───▶│  Fetch   │───▶│ JSON Parser   │  │
+│  │ (5 min)  │    │ (cookie) │    │ (payload)     │  │
+│  └──────────┘    └──────────┘    └──────┬───────┘  │
+│                                          │          │
+│                                          ▼          │
+│                                  ┌──────────────┐   │
+│                                  │  Bookmark    │   │
+│                                  │  Sync Engine │   │
+│                                  └──────────────┘   │
+└─────────────────────────────────────────────────────┘
+```
+
+### Workflow
+
+1. A Chrome alarm fires every 5 minutes
+2. The service worker fetches `https://github.com/pulls?q=...author:@me` with `Accept: application/json`
+3. The request includes credentials (your existing GitHub session cookie via host permission)
+4. GitHub returns a JSON payload containing `pullsDashboardSurfaceContentRoute.results`
+5. PR titles, repos, permalinks are extracted from the results array
+6. The bookmark folder is incrementally updated (add/remove/reorder)
+
+If the JSON approach fails, the extension falls back to fetching HTML and parsing embedded `<script>` data via an offscreen document.
+
+### Data Source
+
+The extension fetches this URL:
+```
+https://github.com/pulls?q=is%3Apr+state%3Aopen+archived%3Afalse+sort%3Aupdated-desc+author%3A%40me
+```
+
+With `Accept: application/json`, GitHub returns the same data that powers its React UI. No separate API endpoint is used.
+
+## Installation
+
+1. Clone or download this repository
+2. Generate icons (requires Node.js): `node create-icons.js`
+3. Open `chrome://extensions/` in Chrome
+4. Enable "Developer mode" (top-right toggle)
+5. Click "Load unpacked"
+6. Select the extension directory
+7. Ensure you are logged in to GitHub in Chrome
+
+The extension will immediately sync your open PRs into a "GitHub PRs" bookmark folder.
+
+## Bookmark Folder Layout
+
+```
+GitHub PRs/
+├── repo-name - Fix login bug
+├── another-repo - Add unit tests
+└── my-project - Update documentation
+```
+
+Bookmarks are ordered by most recently updated (matching GitHub's sort order).
+
+## Why OAuth Is Intentionally Avoided
+
+Many GitHub organizations restrict OAuth Apps and GitHub Apps:
+
+- They require **administrator approval** before users can authorize them
+- Security teams may block third-party OAuth applications entirely
+- Some organizations have blanket policies denying all new OAuth integrations
+- Personal Access Tokens may be restricted by organization SAML/SSO policies
+
+This extension **requires zero administrator approval** because:
+
+- It never registers as a GitHub OAuth App
+- It never requests API access tokens
+- It never sends Authorization headers
+- It only uses the session cookie Chrome already has from your normal GitHub login
+- It only reads a page you can already visit manually
+
+**If you can see your PRs at github.com/pulls, this extension works.**
+
+## Privacy Considerations
+
+- **No data leaves your browser.** Everything is processed locally.
+- **No external servers** are contacted (only github.com).
+- **No telemetry** is collected.
+- **No credentials are stored.** The extension relies on Chrome's existing session.
+- **No `cookies` permission** is requested. The `credentials: "include"` fetch option uses the session naturally.
+- **Bookmarks are local.** They sync only if you have Chrome bookmark sync enabled (your choice).
+
+## Permissions Explained
+
+| Permission | Why |
+|---|---|
+| `bookmarks` | Create and manage the PR bookmark folder |
+| `alarms` | Schedule periodic sync every 5 minutes |
+| `storage` | Store last sync status for the popup |
+| `offscreen` | Create offscreen document for HTML fallback parsing |
+| `https://github.com/*` | Fetch the PR listing page with session cookies |
+
+No other permissions are requested. Specifically:
+- No `identity` (no OAuth)
+- No `tabs` (no tab access)
+- No `scripting` (no content script injection)
+- No `cookies` (no cookie reading)
+
+## Known Limitations
+
+1. **Requires active GitHub session** — You must be logged in to GitHub in Chrome. If you log out, syncing pauses gracefully.
+
+2. **HTML parsing fragility** — If GitHub stops returning JSON for the `Accept: application/json` header, the extension falls back to HTML parsing via an offscreen document. The parser is isolated for easy updates.
+
+3. **Rate limiting** — Fetching a page every 5 minutes is very conservative, but GitHub could theoretically rate-limit aggressive use. The extension makes exactly one request per sync cycle.
+
+4. **No real-time updates** — Changes appear within 5 minutes, not instantly. You can click "Sync Now" in the popup for immediate updates.
+
+5. **Service Worker lifecycle** — Chrome may suspend the service worker between alarms. The alarm API ensures it wakes up reliably.
+
+6. **Private repositories** — Works with private repos as long as your session has access to them (which it does if you can see them on github.com).
+
+## Error Handling
+
+The extension handles failures gracefully:
+
+- **Not logged in**: Detected and reported in popup. No bookmarks modified.
+- **Network errors**: Logged and skipped. Bookmarks preserved.
+- **Unexpected HTML**: Parser returns empty list, existing bookmarks kept.
+- **GitHub unavailable**: Treated as transient error. Retries on next alarm.
+
+**Bookmarks are never destroyed due to temporary failures.**
+
+## Files
+
+| File | Purpose |
+|---|---|
+| `manifest.json` | Extension manifest (Manifest V3) |
+| `background.js` | Service worker: fetch, parse JSON, sync bookmarks |
+| `offscreen.html` | Offscreen document shell (for HTML fallback parsing) |
+| `offscreen.js` | HTML/DOM parsing logic (fallback if JSON unavailable) |
+| `popup.html` | Extension popup UI |
+| `popup.js` | Popup interaction logic |
+| `icons/` | Extension icons |
+| `create-icons.js` | Icon generation script |
+| `generate-icons.html` | Alternative browser-based icon generator |
+
+## Attribution & Inspiration
+
+This extension is inspired by [PR Live Folder](https://github.com/shiruten/pr-live-folder) by shiruten.
+
+### What was reused/inspired
+
+| Aspect | Source | Notes |
+|---|---|---|
+| Core concept | PR Live Folder | Bookmark folder containing PRs |
+| Folder sync strategy | PR Live Folder | Incremental update pattern (add/remove/reorder) |
+| Bookmark deduplication | PR Live Folder | Search-by-title to avoid duplicate folders |
+| Folder naming convention | PR Live Folder | `repo - title` format |
+| Alarm-based scheduling | PR Live Folder | Periodic background sync |
+
+### What was completely rewritten
+
+| Component | Reason |
+|---|---|
+| Authentication layer | Replaced OAuth/API tokens with session-cookie fetch |
+| Data retrieval | Replaced GitHub REST API with JSON page payload (`Accept: application/json`) |
+| JSON parser | New; extracts PRs from `pullsDashboardSurfaceContentRoute.results` |
+| HTML fallback parser | New; parses embedded JSON from script tags via offscreen document |
+| Manifest permissions | Reduced to minimum (no identity, no cookies) |
+| Service worker structure | Rewritten for Manifest V3 patterns |
+| Popup UI | New design matching GitHub's visual style |
+| Error handling | New; designed for fetch/parse failure modes |
+
+### Why scraping was chosen over OAuth
+
+1. **Zero admin approval** — OAuth Apps require organization administrator review
+2. **No token management** — No storage of sensitive credentials
+3. **No registration** — No GitHub App or OAuth App to register and maintain
+4. **Simpler architecture** — No token refresh, no scopes, no redirect URIs
+5. **Works everywhere** — Functions in any organization regardless of OAuth policies
+6. **Privacy** — No data shared with any third party; no external server
+
+The extension requests the same URL a user visits in their browser, but with `Accept: application/json` to receive structured data directly from GitHub's server-side rendering pipeline. This avoids both the GitHub REST/GraphQL API and fragile HTML scraping.
+
+## License
+
+This project is inspired by [PR Live Folder](https://github.com/shiruten/pr-live-folder) which is licensed under the MIT License. Original copyright notices are preserved where applicable.
+
+MIT License — See PR Live Folder for original attribution.
