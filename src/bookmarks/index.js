@@ -150,8 +150,22 @@ function partitionByAge(prs, thresholdDays) {
 
 async function getOrCreateFolder(name, parentId) {
   const results = await chrome.bookmarks.search({ title: name });
-  const folder = results.find((node) => !node.url && node.parentId === parentId);
-  if (folder) return folder;
+
+  // Prefer exact parent match
+  const exactMatch = results.find((node) => !node.url && node.parentId === parentId);
+  if (exactMatch) return exactMatch;
+
+  // If parentId is the bookmarks bar ("1"), also accept "2" (Other Bookmarks)
+  // to handle folders that may have been moved
+  if (parentId === "1") {
+    const anyRoot = results.find((node) => !node.url && (node.parentId === "1" || node.parentId === "2"));
+    if (anyRoot) return anyRoot;
+  }
+
+  // For sub-folders, just find any folder with that name under any parent
+  // This catches cases where parentId is a string number we didn't expect
+  const anyMatch = results.find((node) => !node.url);
+  if (anyMatch && parentId === "1") return anyMatch;
 
   return await chrome.bookmarks.create({ parentId, title: name });
 }
@@ -177,8 +191,14 @@ async function removeSubfolders(parentId, preserve = []) {
   const preserveSet = new Set(preserve);
 
   for (const child of children) {
-    if (!child.url && !preserveSet.has(child.title)) {
-      await chrome.bookmarks.removeTree(child.id);
+    // A folder has no url property (or it's undefined/empty)
+    const isFolder = !child.url;
+    if (isFolder && !preserveSet.has(child.title)) {
+      try {
+        await chrome.bookmarks.removeTree(child.id);
+      } catch (e) {
+        console.warn("[GitHub PR Bookmarks] Failed to remove subfolder:", child.title, e.message);
+      }
     }
   }
 }
