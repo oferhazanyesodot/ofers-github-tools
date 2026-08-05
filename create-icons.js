@@ -69,15 +69,15 @@ function drawPRIcon(size) {
   // Scale factor
   const s = size / 16;
 
-  // Colors - green like GitHub's PR icon
-  const green = [57, 211, 83]; // #39d353 - GitHub green
+  // Icon color
+  const color = [255, 255, 255]; // white
 
   // Draw the PR icon shape (based on GitHub's Octicon)
   // Left vertical line (source branch)
-  drawLine(3.75 * s, 4 * s, 3.75 * s, 12 * s, 1.4 * s, ...green);
+  drawLine(3.75 * s, 4 * s, 3.75 * s, 12 * s, 1.4 * s, ...color);
 
   // Right vertical line (target branch, shorter)
-  drawLine(12.25 * s, 7 * s, 12.25 * s, 12 * s, 1.4 * s, ...green);
+  drawLine(12.25 * s, 7 * s, 12.25 * s, 12 * s, 1.4 * s, ...color);
 
   // Arrow from right to left-ish (the merge arrow curve)
   // Draw as segments approximating the curve
@@ -90,19 +90,19 @@ function drawPRIcon(size) {
     const ay1 = (1 - t1) * (1 - t1) * 5.5 + 2 * (1 - t1) * t1 * 3 + t1 * t1 * 3;
     const ax2 = (1 - t2) * (1 - t2) * 12.25 + 2 * (1 - t2) * t2 * 12.25 + t2 * t2 * 9.5;
     const ay2 = (1 - t2) * (1 - t2) * 5.5 + 2 * (1 - t2) * t2 * 3 + t2 * t2 * 3;
-    drawLine(ax1 * s, ay1 * s, ax2 * s, ay2 * s, 1.4 * s, ...green);
+    drawLine(ax1 * s, ay1 * s, ax2 * s, ay2 * s, 1.4 * s, ...color);
   }
 
   // Arrow head pointing left at (9.5, 3)
-  drawLine(9.5 * s, 3 * s, 7.5 * s, 3 * s, 1.4 * s, ...green);
-  drawLine(9.2 * s, 1.5 * s, 7.5 * s, 3 * s, 1.3 * s, ...green);
-  drawLine(9.2 * s, 4.5 * s, 7.5 * s, 3 * s, 1.3 * s, ...green);
+  drawLine(9.5 * s, 3 * s, 7.5 * s, 3 * s, 1.4 * s, ...color);
+  drawLine(9.2 * s, 1.5 * s, 7.5 * s, 3 * s, 1.3 * s, ...color);
+  drawLine(9.2 * s, 4.5 * s, 7.5 * s, 3 * s, 1.3 * s, ...color);
 
   // Circles at endpoints
   const dotR = 1.8 * s;
-  fillCircle(3.75 * s, 3.25 * s, dotR, ...green);
-  fillCircle(3.75 * s, 12.75 * s, dotR, ...green);
-  fillCircle(12.25 * s, 12.75 * s, dotR, ...green);
+  fillCircle(3.75 * s, 3.25 * s, dotR, ...color);
+  fillCircle(3.75 * s, 12.75 * s, dotR, ...color);
+  fillCircle(12.25 * s, 12.75 * s, dotR, ...color);
 
   return pixels;
 }
