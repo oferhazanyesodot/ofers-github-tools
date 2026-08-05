@@ -154,13 +154,27 @@ function partitionByAge(prs, thresholdDays) {
  * Chrome uses "1", Firefox uses "toolbar_____".
  */
 async function getBookmarksBarId() {
-  // Try Firefox's toolbar GUID first
-  try {
-    const results = await chrome.bookmarks.get("toolbar_____");
-    if (results && results.length > 0) return "toolbar_____";
-  } catch (_) { /* not Firefox */ }
+  const tree = await chrome.bookmarks.getTree();
+  const root = tree[0];
 
-  // Chrome: Bookmarks Bar is always "1"
+  // The root has children: Bookmarks Bar/Toolbar, Other Bookmarks, Mobile
+  // Firefox: "toolbar_____", Chrome: "1"
+  if (root && root.children) {
+    for (const child of root.children) {
+      // Firefox toolbar folder
+      if (child.id === "toolbar_____") return child.id;
+      // Chrome bookmarks bar
+      if (child.id === "1") return child.id;
+      // Match by title as fallback
+      if (child.title === "Bookmarks Toolbar" || child.title === "Bookmarks Bar") {
+        return child.id;
+      }
+    }
+  }
+
+  // Last resort: return first child of root (usually the toolbar)
+  if (root?.children?.[0]) return root.children[0].id;
+
   return "1";
 }
 
