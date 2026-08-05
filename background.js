@@ -11,10 +11,26 @@
 "use strict";
 
 const ALARM_NAME = "github-pr-sync";
-const ALARM_INTERVAL_MINUTES = 5;
-const FOLDER_NAME = "GitHub PRs";
-const GITHUB_PR_URL =
-  "https://github.com/pulls?q=is%3Apr+state%3Aopen+archived%3Afalse+sort%3Aupdated-desc+author%3A%40me";
+const DEFAULT_INTERVAL_MINUTES = 5;
+const DEFAULT_FOLDER_NAME = "GitHub PRs";
+const DEFAULT_QUERY = "is:pr state:open archived:false sort:updated-desc author:@me";
+const GITHUB_PULLS_BASE = "https://github.com/pulls?q=";
+
+// ─── Settings ────────────────────────────────────────────────────────────────
+
+async function getSettings() {
+  const data = await chrome.storage.sync.get("settings");
+  const s = data.settings || {};
+  return {
+    query: s.query || DEFAULT_QUERY,
+    intervalMinutes: s.intervalMinutes || DEFAULT_INTERVAL_MINUTES,
+    folderName: s.folderName || DEFAULT_FOLDER_NAME,
+  };
+}
+
+function buildPRUrl(query) {
+  return GITHUB_PULLS_BASE + encodeURIComponent(query).replace(/%20/g, "+");
+}
 
 // ─── Lifecycle ───────────────────────────────────────────────────────────────
 
@@ -35,21 +51,25 @@ chrome.runtime.onStartup.addListener(async () => {
   await syncPRs();
 });
 
-// Handle manual sync requests from the popup
+// Handle manual sync requests from the popup and settings changes
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "syncNow") {
     syncPRs().then(() => sendResponse({ done: true }));
-    return true; // Keep message channel open for async response
+    return true;
+  }
+  if (message.action === "settingsChanged") {
+    setupAlarm().then(() => syncPRs()).then(() => sendResponse({ done: true }));
+    return true;
   }
 });
 
 // ─── Alarm Setup ─────────────────────────────────────────────────────────────
 
 async function setupAlarm() {
-  const existing = await chrome.alarms.get(ALARM_NAME);
-  if (!existing) {
-    chrome.alarms.create(ALARM_NAME, { periodInMinutes: ALARM_INTERVAL_MINUTES });
-  }
+  const settings = await getSettings();
+  // Clear existing and recreate with current interval
+  await chrome.alarms.clear(ALARM_NAME);
+  chrome.alarms.create(ALARM_NAME, { periodInMinutes: settings.intervalMinutes });
 }
 
 // ─── Main Sync Logic ─────────────────────────────────────────────────────────
@@ -112,9 +132,11 @@ async function ensureOffscreenDocument() {
 // ─── Fetch & Parse ───────────────────────────────────────────────────────────
 
 async function fetchAndParsePRs() {
+  const settings = await getSettings();
+  const url = buildPRUrl(settings.query);
+
   // Strategy 1: Request JSON directly using GitHub's internal Accept header.
-  // GitHub's React frontend fetches page data via this same URL with Accept: application/json.
-  const jsonPrs = await tryFetchJSON();
+  const jsonPrs = await tryFetchJSON(url);
 
   // null = not logged in, undefined = try fallback, array = success
   if (jsonPrs === null) {
@@ -125,7 +147,7 @@ async function fetchAndParsePRs() {
   }
 
   // Strategy 2: Fetch the HTML page and parse embedded JSON from script tags.
-  const htmlPrs = await tryFetchHTML();
+  const htmlPrs = await tryFetchHTML(url);
   return htmlPrs;
 }
 
@@ -133,9 +155,9 @@ async function fetchAndParsePRs() {
  * Fetch the pulls page with Accept: application/json.
  * GitHub returns the embedded JSON payload directly when this header is present.
  */
-async function tryFetchJSON() {
+async function tryFetchJSON(url) {
   try {
-    const response = await fetch(GITHUB_PR_URL, {
+    const response = await fetch(url, {
       credentials: "include",
       redirect: "manual",
       headers: {
@@ -191,8 +213,8 @@ async function tryFetchJSON() {
 /**
  * Fetch the HTML page and use the offscreen document to parse it.
  */
-async function tryFetchHTML() {
-  const response = await fetch(GITHUB_PR_URL, {
+async function tryFetchHTML(url) {
+  const response = await fetch(url, {
     credentials: "include",
     headers: {
       Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -326,7 +348,8 @@ function deepFindResults(obj, depth = 0) {
  * then incrementally updates its contents to match the PR list.
  */
 async function synchronizeBookmarks(prs) {
-  const folder = await getOrCreateFolder();
+  const settings = await getSettings();
+  const folder = await getOrCreateFolder(settings.folderName);
   const existingBookmarks = await chrome.bookmarks.getChildren(folder.id);
 
   // Build maps for efficient comparison
@@ -391,9 +414,9 @@ async function synchronizeBookmarks(prs) {
  * Finds the "GitHub PRs" folder in the Bookmarks Bar, or creates it.
  * Never creates duplicates.
  */
-async function getOrCreateFolder() {
+async function getOrCreateFolder(folderName) {
   // Search for existing folder by title
-  const results = await chrome.bookmarks.search({ title: FOLDER_NAME });
+  const results = await chrome.bookmarks.search({ title: folderName });
   for (const node of results) {
     // Ensure it's actually a folder (no url property) 
     if (!node.url) {
@@ -404,7 +427,7 @@ async function getOrCreateFolder() {
   // Create in the Bookmarks Bar (id "1" is the bookmarks bar in Chrome)
   const folder = await chrome.bookmarks.create({
     parentId: "1",
-    title: FOLDER_NAME,
+    title: folderName,
   });
   return folder;
 }

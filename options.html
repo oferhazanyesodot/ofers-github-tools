@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub PR Bookmarks — Settings</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      color: #24292f;
+      background: #ffffff;
+      line-height: 1.5;
+    }
+    @media (prefers-color-scheme: dark) {
+      body {
+        background: #0d1117;
+        color: #e6edf3;
+      }
+    }
+    h1 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: #57606a;
+      margin-bottom: 24px;
+    }
+    @media (prefers-color-scheme: dark) {
+      .subtitle { color: #8b949e; }
+    }
+    fieldset {
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    @media (prefers-color-scheme: dark) {
+      fieldset { border-color: #30363d; }
+    }
+    legend {
+      font-size: 14px;
+      font-weight: 600;
+      padding: 0 8px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: #24292f;
+    }
+    @media (prefers-color-scheme: dark) {
+      label { color: #e6edf3; }
+    }
+    .hint {
+      font-size: 12px;
+      color: #57606a;
+      margin-bottom: 8px;
+    }
+    @media (prefers-color-scheme: dark) {
+      .hint { color: #8b949e; }
+    }
+    select, input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 8px 12px;
+      font-size: 13px;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      background: #f6f8fa;
+      color: #24292f;
+      margin-bottom: 12px;
+    }
+    @media (prefers-color-scheme: dark) {
+      select, input[type="text"], input[type="number"] {
+        border-color: #30363d;
+        background: #161b22;
+        color: #e6edf3;
+      }
+    }
+    input[type="number"] {
+      width: 80px;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .row label {
+      margin-bottom: 0;
+      white-space: nowrap;
+    }
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    button {
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .btn-primary {
+      background: #1f6feb;
+      color: #ffffff;
+      border: 1px solid #1f6feb;
+    }
+    .btn-primary:hover {
+      background: #1a5fd4;
+    }
+    .btn-secondary {
+      background: #f6f8fa;
+      color: #24292f;
+      border: 1px solid #d0d7de;
+    }
+    .btn-secondary:hover {
+      background: #eaeef2;
+    }
+    @media (prefers-color-scheme: dark) {
+      .btn-secondary {
+        background: #21262d;
+        color: #e6edf3;
+        border-color: #30363d;
+      }
+      .btn-secondary:hover {
+        background: #30363d;
+      }
+    }
+    .toast {
+      margin-top: 12px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      display: none;
+    }
+    .toast.show {
+      display: block;
+    }
+    .toast.success {
+      background: #dafbe1;
+      color: #116329;
+    }
+    @media (prefers-color-scheme: dark) {
+      .toast.success {
+        background: #0f291a;
+        color: #3fb950;
+      }
+    }
+    .presets {
+      margin-bottom: 12px;
+    }
+    .preset-btn {
+      display: inline-block;
+      padding: 4px 10px;
+      font-size: 11px;
+      border: 1px solid #d0d7de;
+      border-radius: 20px;
+      background: #f6f8fa;
+      color: #24292f;
+      cursor: pointer;
+      margin: 2px 4px 2px 0;
+    }
+    .preset-btn:hover {
+      background: #eaeef2;
+    }
+    @media (prefers-color-scheme: dark) {
+      .preset-btn {
+        border-color: #30363d;
+        background: #21262d;
+        color: #e6edf3;
+      }
+      .preset-btn:hover {
+        background: #30363d;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>GitHub PR Bookmarks</h1>
+  <p class="subtitle">Configure which pull requests appear in your bookmark folder.</p>
+
+  <fieldset>
+    <legend>Query</legend>
+    <label for="query">GitHub search query</label>
+    <p class="hint">This is appended to <code>https://github.com/pulls?q=</code></p>
+    <div class="presets">
+      <button type="button" class="preset-btn" data-query="is:pr state:open archived:false sort:updated-desc author:@me">My PRs</button>
+      <button type="button" class="preset-btn" data-query="is:pr state:open archived:false sort:updated-desc review-requested:@me">Review requested</button>
+      <button type="button" class="preset-btn" data-query="is:pr state:open archived:false sort:updated-desc assignee:@me">Assigned to me</button>
+      <button type="button" class="preset-btn" data-query="is:pr state:open archived:false sort:updated-desc mentions:@me">Mentions me</button>
+    </div>
+    <input type="text" id="query" placeholder="is:pr state:open archived:false sort:updated-desc author:@me">
+  </fieldset>
+
+  <fieldset>
+    <legend>Sync</legend>
+    <div class="row">
+      <label for="interval">Sync every</label>
+      <input type="number" id="interval" min="1" max="60" value="5">
+      <span>minutes</span>
+    </div>
+    <p class="hint">Minimum 1 minute. Lower values use more resources.</p>
+  </fieldset>
+
+  <fieldset>
+    <legend>Bookmark Folder</legend>
+    <label for="folder-name">Folder name</label>
+    <input type="text" id="folder-name" placeholder="GitHub PRs">
+    <p class="hint">The bookmark folder that will be created/maintained in your Bookmarks Bar.</p>
+  </fieldset>
+
+  <div class="actions">
+    <button class="btn-primary" id="save-btn">Save Settings</button>
+    <button class="btn-secondary" id="reset-btn">Reset to Defaults</button>
+  </div>
+  <div class="toast success" id="toast">Settings saved. Syncing now…</div>
+
+  <script src="options.js"></script>
+</body>
+</html>

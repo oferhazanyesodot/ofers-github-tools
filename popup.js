@@ -7,6 +7,12 @@
 
 const statusEl = document.getElementById("status");
 const syncBtn = document.getElementById("sync-btn");
+const optionsBtn = document.getElementById("options-btn");
+
+// Open options page
+optionsBtn.addEventListener("click", () => {
+  chrome.runtime.openOptionsPage();
+});
 
 // Load and display current status
 async function loadStatus() {
