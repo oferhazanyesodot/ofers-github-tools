@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "GitHub PR Bookmark Folder",
-  "version": "1.2.0",
-  "description": "Automatically maintains a bookmark folder with your open GitHub Pull Requests, using your existing GitHub session.",
+  "name": "Ofer's GitHub Tools",
+  "version": "2.0.0",
+  "description": "A personal GitHub toolkit: auto-syncing PR bookmark folder, Copilot usage tracking with burn-rate projections, and more — all using your existing GitHub session.",
   "permissions": [
     "bookmarks",
     "alarms",
