@@ -11,6 +11,9 @@ const showDraftEl = document.getElementById("show-draft");
 const groupByRepoEl = document.getElementById("group-by-repo");
 const notificationsEl = document.getElementById("notifications");
 const staleDaysEl = document.getElementById("stale-days");
+const copilotTrackingEl = document.getElementById("copilot-tracking");
+const copilotWorkdaysEl = document.getElementById("copilot-workdays");
+const copilotAlertEl = document.getElementById("copilot-alert");
 const saveBtn = document.getElementById("save-btn");
 const resetBtn = document.getElementById("reset-btn");
 const exportBtn = document.getElementById("export-btn");
@@ -29,6 +32,9 @@ async function load() {
   groupByRepoEl.checked = s.groupByRepo;
   notificationsEl.checked = s.notifications;
   staleDaysEl.value = s.staleThresholdDays;
+  copilotTrackingEl.checked = s.copilotTracking;
+  copilotWorkdaysEl.value = s.copilotWorkDays;
+  copilotAlertEl.value = s.copilotAlertThreshold;
 }
 
 // ─── Save ────────────────────────────────────────────────────────────────────
@@ -42,6 +48,9 @@ saveBtn.addEventListener("click", async () => {
     groupByRepo: groupByRepoEl.checked,
     notifications: notificationsEl.checked,
     staleThresholdDays: Math.max(0, parseInt(staleDaysEl.value, 10) || 0),
+    copilotTracking: copilotTrackingEl.checked,
+    copilotWorkDays: Math.max(1, Math.min(7, parseInt(copilotWorkdaysEl.value, 10) || DEFAULTS.copilotWorkDays)),
+    copilotAlertThreshold: Math.max(0, Math.min(100, parseInt(copilotAlertEl.value, 10) || 0)),
   };
 
   await saveSettings(settings);
@@ -65,6 +74,9 @@ resetBtn.addEventListener("click", () => {
   groupByRepoEl.checked = DEFAULTS.groupByRepo;
   notificationsEl.checked = DEFAULTS.notifications;
   staleDaysEl.value = DEFAULTS.staleThresholdDays;
+  copilotTrackingEl.checked = DEFAULTS.copilotTracking;
+  copilotWorkdaysEl.value = DEFAULTS.copilotWorkDays;
+  copilotAlertEl.value = DEFAULTS.copilotAlertThreshold;
 });
 
 // ─── Import / Export ─────────────────────────────────────────────────────────

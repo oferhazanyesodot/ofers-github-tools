@@ -67,6 +67,27 @@
   </fieldset>
 
   <fieldset>
+    <legend>Copilot Usage Tracking</legend>
+    <div class="checkbox-row">
+      <input type="checkbox" id="copilot-tracking" checked>
+      <label for="copilot-tracking">Track GitHub Copilot credit usage</label>
+    </div>
+    <p class="hint">Shows a usage bar and burn-rate projection in the popup.</p>
+    <div class="row">
+      <label for="copilot-workdays">Work days per week</label>
+      <input type="number" id="copilot-workdays" min="1" max="7" value="5">
+      <span>days</span>
+    </div>
+    <p class="hint">Used to calculate your daily usage rate and project remaining credits.</p>
+    <div class="row">
+      <label for="copilot-alert">Alert at usage threshold</label>
+      <input type="number" id="copilot-alert" min="0" max="100" value="80">
+      <span>%</span>
+    </div>
+    <p class="hint">Desktop notification when projected usage exceeds this. Set to 0 to disable.</p>
+  </fieldset>
+
+  <fieldset>
     <legend>Import / Export</legend>
     <p class="hint">Share your configuration across devices or back it up.</p>
     <div class="actions" style="margin-top: 8px; margin-bottom: 8px;">

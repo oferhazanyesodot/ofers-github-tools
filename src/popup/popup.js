@@ -1,14 +1,25 @@
 /**
- * Popup script — displays sync status, PR list, and provides quick actions.
+ * Popup script — displays sync status, PR list, Copilot usage, and provides quick actions.
  */
 
-import { getSettings } from "../shared/settings.js";
+import { getSettings, saveSettings } from "../shared/settings.js";
 
 const statusEl = document.getElementById("status");
 const syncBtn = document.getElementById("sync-btn");
 const optionsBtn = document.getElementById("options-btn");
 const footerEl = document.getElementById("footer");
 const prListEl = document.getElementById("pr-list");
+const copilotUsageEl = document.getElementById("copilot-usage");
+const copilotStatsEl = document.getElementById("copilot-stats");
+const copilotBarEl = document.getElementById("copilot-bar");
+const copilotBarProjectedEl = document.getElementById("copilot-bar-projected");
+const copilotBarContainerEl = document.getElementById("copilot-bar-container");
+const copilotDetailsEl = document.getElementById("copilot-details");
+const copilotProjectionEl = document.getElementById("copilot-projection");
+const copilotHeaderEl = document.getElementById("copilot-header");
+const copilotBodyEl = document.getElementById("copilot-body");
+const copilotCollapseEl = document.getElementById("copilot-collapse");
+const copilotSparklineEl = document.getElementById("copilot-sparkline");
 
 // ─── Actions ─────────────────────────────────────────────────────────────────
 
@@ -134,6 +145,143 @@ async function updateFooter() {
   footerEl.textContent = `Syncs every ${intervalMinutes} minute${intervalMinutes === 1 ? "" : "s"} · Alt+Shift+P to sync`;
 }
 
+// ─── Copilot Usage ───────────────────────────────────────────────────────────
+
+// Collapse/expand toggle
+copilotCollapseEl.addEventListener("click", async (e) => {
+  e.stopPropagation();
+  const isCollapsed = copilotBodyEl.classList.toggle("collapsed");
+  copilotCollapseEl.textContent = isCollapsed ? "▸" : "▾";
+
+  // Persist collapse state
+  const settings = await getSettings();
+  settings.copilotCollapsed = isCollapsed;
+  await saveSettings(settings);
+});
+
+// Click title to open GitHub Copilot settings
+document.getElementById("copilot-title-link").addEventListener("click", () => {
+  chrome.tabs.create({ url: "https://github.com/settings/copilot" });
+});
+
+async function loadCopilotUsage() {
+  const settings = await getSettings();
+  if (!settings.copilotTracking) {
+    copilotUsageEl.classList.add("hidden");
+    return;
+  }
+
+  const data = await chrome.storage.local.get("copilotUsage");
+  const usage = data.copilotUsage;
+
+  if (!usage) {
+    copilotUsageEl.classList.add("hidden");
+    return;
+  }
+
+  copilotUsageEl.classList.remove("hidden");
+
+  // Restore collapse state
+  if (settings.copilotCollapsed) {
+    copilotBodyEl.classList.add("collapsed");
+    copilotCollapseEl.textContent = "▸";
+  } else {
+    copilotBodyEl.classList.remove("collapsed");
+    copilotCollapseEl.textContent = "▾";
+  }
+
+  const { used, limit, percentage, daysUntilReset, projection } = usage;
+  const remaining = limit - used;
+
+  // Stats line
+  copilotStatsEl.textContent = `${used.toLocaleString()} / ${limit.toLocaleString()}`;
+
+  // Usage bar
+  copilotBarEl.style.width = `${Math.min(percentage, 100)}%`;
+  copilotBarEl.className = `copilot-bar ${projection?.status || "good"}`;
+
+  // Tooltip on bar
+  copilotBarContainerEl.title = `${used.toLocaleString()} used / ${remaining.toLocaleString()} remaining of ${limit.toLocaleString()} credits`;
+
+  // Projected bar (shows where you'll end up)
+  if (projection) {
+    const projPct = Math.min(projection.projectedPercentage, 100);
+    copilotBarProjectedEl.style.width = `${projPct}%`;
+    copilotBarProjectedEl.className = `copilot-bar-projected ${projection.status}`;
+  }
+
+  // Details
+  copilotDetailsEl.textContent = `${percentage}% used · Resets in ${daysUntilReset} days · ~${projection?.dailyRate || 0} credits/workday · ${projection?.workdaysRemaining || 0} workdays left`;
+
+  // Projection
+  if (projection) {
+    copilotProjectionEl.textContent = projection.message;
+    copilotProjectionEl.className = `copilot-projection ${projection.status}`;
+  }
+
+  // Sparkline
+  await renderSparkline();
+}
+
+async function renderSparkline() {
+  const data = await chrome.storage.local.get("copilotHistory");
+  const history = data.copilotHistory || [];
+
+  if (history.length < 2) {
+    copilotSparklineEl.style.display = "none";
+    return;
+  }
+
+  copilotSparklineEl.style.display = "block";
+  const ctx = copilotSparklineEl.getContext("2d");
+  const width = copilotSparklineEl.width;
+  const height = copilotSparklineEl.height;
+  const padding = 2;
+
+  ctx.clearRect(0, 0, width, height);
+
+  // Get percentages
+  const points = history.map((h) => h.percentage);
+  const max = Math.max(...points, 100);
+  const min = 0;
+
+  const stepX = (width - padding * 2) / (points.length - 1);
+
+  // Draw the line
+  ctx.beginPath();
+  ctx.strokeStyle = getSparklineColor(points[points.length - 1]);
+  ctx.lineWidth = 1.5;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+
+  for (let i = 0; i < points.length; i++) {
+    const x = padding + i * stepX;
+    const y = height - padding - ((points[i] - min) / (max - min)) * (height - padding * 2);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Fill area under
+  ctx.lineTo(padding + (points.length - 1) * stepX, height - padding);
+  ctx.lineTo(padding, height - padding);
+  ctx.closePath();
+  ctx.fillStyle = getSparklineFill(points[points.length - 1]);
+  ctx.fill();
+}
+
+function getSparklineColor(lastPct) {
+  if (lastPct >= 80) return "#cf222e";
+  if (lastPct >= 60) return "#bf8700";
+  return "#2da44e";
+}
+
+function getSparklineFill(lastPct) {
+  if (lastPct >= 80) return "rgba(207, 34, 46, 0.1)";
+  if (lastPct >= 60) return "rgba(191, 135, 0, 0.1)";
+  return "rgba(45, 164, 78, 0.1)";
+}
+
 // ─── Utilities ───────────────────────────────────────────────────────────────
 
 function relativeTime(timestamp) {
@@ -161,10 +309,11 @@ function escapeHtml(str) {
 async function loadAll() {
   await loadStatus();
   await loadPRList();
+  await loadCopilotUsage();
 }
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && (changes.lastSync || changes.prList)) loadAll();
+  if (area === "local" && (changes.lastSync || changes.prList || changes.copilotUsage || changes.copilotHistory)) loadAll();
   if (area === "sync" && changes.settings) updateFooter();
 });
 

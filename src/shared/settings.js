@@ -10,6 +10,10 @@ export const DEFAULTS = {
   groupByRepo: false,
   notifications: true,
   staleThresholdDays: 0, // 0 = disabled, >0 = move to "Old PRs" subfolder
+  copilotTracking: true,
+  copilotWorkDays: 5, // 1-7, number of days per week you work
+  copilotAlertThreshold: 80, // percentage at which to show a notification (0 = disabled)
+  copilotCollapsed: false, // whether the copilot card is collapsed in popup
 };
 
 /**
@@ -26,6 +30,10 @@ export async function getSettings() {
     groupByRepo: s.groupByRepo ?? DEFAULTS.groupByRepo,
     notifications: s.notifications ?? DEFAULTS.notifications,
     staleThresholdDays: s.staleThresholdDays ?? DEFAULTS.staleThresholdDays,
+    copilotTracking: s.copilotTracking ?? DEFAULTS.copilotTracking,
+    copilotWorkDays: s.copilotWorkDays ?? DEFAULTS.copilotWorkDays,
+    copilotAlertThreshold: s.copilotAlertThreshold ?? DEFAULTS.copilotAlertThreshold,
+    copilotCollapsed: s.copilotCollapsed ?? DEFAULTS.copilotCollapsed,
   };
 }
 

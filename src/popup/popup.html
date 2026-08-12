@@ -17,6 +17,26 @@
 
   <div id="status" class="status unknown">Checking status…</div>
 
+  <div id="copilot-usage" class="copilot-usage hidden">
+    <div class="copilot-header" id="copilot-header">
+      <svg class="copilot-icon" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M7.998 15.035c-4.562 0-7.873-2.914-7.998-3.749V9.338c.085-.628.677-1.686 1.588-2.065.013-.07.024-.143.036-.218.029-.183.06-.384.126-.612-.201-.508-.254-1.084-.254-1.656 0-.87.138-1.756.377-2.282.394-.868 1.25-1.833 1.979-2.125.209-.084.418-.125.629-.125.185 0 .394.04.607.121.269.1.484.248.652.39C6.196.483 7.028.025 7.998.025c.97 0 1.802.458 2.258.966.168-.142.383-.29.652-.39.212-.081.422-.121.607-.121.21 0 .42.041.629.125.729.292 1.585 1.257 1.979 2.125.239.526.377 1.412.377 2.282 0 .572-.053 1.148-.254 1.656.066.228.097.43.126.612.012.076.023.148.036.218.911.379 1.503 1.437 1.588 2.065v1.948c-.125.835-3.436 3.749-7.998 3.749l-.002-.001ZM3.635 9.545c-.572 0-1.036.464-1.036 1.036 0 .572.464 1.036 1.036 1.036.573 0 1.036-.464 1.036-1.036 0-.572-.463-1.036-1.036-1.036Zm8.73 0c-.572 0-1.036.464-1.036 1.036 0 .572.464 1.036 1.036 1.036.573 0 1.036-.464 1.036-1.036 0-.572-.463-1.036-1.036-1.036ZM7.998 1.525c-1.156 0-2.904.852-2.904 4.263 0 1.344.375 2.553.998 3.405.626.856 1.36 1.182 1.906 1.182.546 0 1.28-.326 1.906-1.182.623-.852.998-2.061.998-3.405 0-3.411-1.748-4.263-2.904-4.263Z"/>
+      </svg>
+      <span class="copilot-title" id="copilot-title-link" title="Open GitHub Copilot settings">Copilot Usage</span>
+      <span class="copilot-stats" id="copilot-stats"></span>
+      <span class="copilot-collapse" id="copilot-collapse" title="Toggle">▾</span>
+    </div>
+    <div class="copilot-body" id="copilot-body">
+      <div class="copilot-bar-container" id="copilot-bar-container" title="">
+        <div class="copilot-bar" id="copilot-bar"></div>
+        <div class="copilot-bar-projected" id="copilot-bar-projected"></div>
+      </div>
+      <div class="copilot-details" id="copilot-details"></div>
+      <div class="copilot-projection" id="copilot-projection"></div>
+      <canvas id="copilot-sparkline" class="copilot-sparkline" width="340" height="32"></canvas>
+    </div>
+  </div>
+
   <div id="pr-list" class="pr-list"></div>
 
   <div class="actions">
