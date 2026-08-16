@@ -4,6 +4,14 @@ A Chrome extension that bundles personal GitHub productivity tools into one ligh
 
 ## Features
 
+### PR Review Tools
+
+Tools that inject directly into GitHub's PR review interface.
+
+- **Toggle All Viewed** — click the progress circle next to "X / Y viewed" to mark all files as viewed (or clear all). Clicks each checkbox sequentially with progress feedback.
+- **Revert File** — in the 3-dot menu on any file in the diff, a "Revert file" option restores it to the base branch version with a single click. Creates a commit automatically on the PR branch.
+- **Reset to Commit** — a small ↩ icon next to every commit SHA in the PR timeline. Click it to get a ready-to-paste `gh` CLI command that resets the branch to that commit.
+
 ### PR Bookmark Folder
 
 Automatically maintains a bookmark folder with your open Pull Requests.
@@ -39,10 +47,12 @@ Monitors your GitHub Copilot AI credit consumption with projections.
 
 ## How It Works
 
-The extension uses your existing GitHub browser session cookies via `credentials: "include"` fetch requests. No API tokens or OAuth registrations needed.
+The extension uses your existing GitHub browser session cookies. No API tokens or OAuth registrations needed.
 
 - **PR sync**: Fetches `github.com/pulls?q=...` with `Accept: application/json` to get structured PR data
 - **Copilot tracking**: Fetches `github.com/settings/copilot` and parses the usage counter from the HTML
+- **Revert file**: Loads the GitHub edit page to extract a CSRF token, fetches the file from the base branch, and submits the edit form — same as manually editing via the GitHub web UI
+- **Reset to commit**: Generates the `gh api` command for force-pushing a branch to a specific SHA
 
 **If you can see your PRs at github.com/pulls and your Copilot usage at github.com/settings/copilot, this extension works.**
 
@@ -84,9 +94,10 @@ See [PRIVACY.md](PRIVACY.md) for the full privacy policy.
 | `storage` | Store sync status, PR list, usage data, and settings |
 | `offscreen` | Offscreen document for HTML fallback parsing |
 | `notifications` | Desktop alerts for new PRs and usage thresholds |
-| `https://github.com/*` | Fetch PR listing and Copilot settings pages |
+| `cookies` | Read GitHub session cookies for authenticated API calls (revert file) |
+| `https://github.com/*` | Fetch PR listing, Copilot settings, and file edit pages |
 
-No `identity`, `tabs`, `scripting`, or `cookies` permissions requested.
+No `identity`, `tabs`, or `scripting` permissions requested.
 
 ## File Structure
 
@@ -94,9 +105,14 @@ No `identity`, `tabs`, `scripting`, or `cookies` permissions requested.
 ├── manifest.json                 Extension manifest (MV3)
 ├── src/
 │   ├── background/
-│   │   ├── index.js              Service worker entry
+│   │   ├── index.js              Service worker entry + revert file logic
 │   │   ├── alarm.js              Alarm scheduling
 │   │   └── sync.js              Sync orchestration (PRs + Copilot)
+│   ├── content/
+│   │   ├── shared.js             Shared utilities (dialogs, banners, metadata)
+│   │   ├── viewed-toggle.js      Toggle all files viewed/unviewed
+│   │   ├── revert-file.js        Revert file menu injection
+│   │   └── reset-commit.js      Reset branch to commit button
 │   ├── fetcher/
 │   │   ├── index.js              PR fetch strategies (JSON + HTML fallback)
 │   │   └── parser.js            JSON payload parser
@@ -130,7 +146,7 @@ No `identity`, `tabs`, `scripting`, or `cookies` permissions requested.
 
 ## Attribution
 
-Inspired by [PR Live Folder](https://github.com/shiruten/pr-live-folder) by shiruten. The PR bookmark sync concept and incremental folder update pattern originated there. Everything else — session-cookie auth, Copilot tracking, popup UI, settings — was built from scratch.
+Inspired by [PR Live Folder](https://github.com/shiruten/pr-live-folder) by shiruten. The PR bookmark sync concept and incremental folder update pattern originated there. Everything else — session-cookie auth, Copilot tracking, PR review tools, popup UI, settings — was built from scratch.
 
 ## License
 

@@ -1,14 +1,15 @@
 {
   "manifest_version": 3,
   "name": "Ofer's GitHub Tools",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "A personal GitHub toolkit: auto-syncing PR bookmark folder, Copilot usage tracking with burn-rate projections, and more — all using your existing GitHub session.",
   "permissions": [
     "bookmarks",
     "alarms",
     "storage",
     "offscreen",
-    "notifications"
+    "notifications",
+    "cookies"
   ],
   "host_permissions": [
     "https://github.com/*"
@@ -34,6 +35,20 @@
     "page": "src/options/options.html",
     "open_in_tab": true
   },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://github.com/*/pull/*"
+      ],
+      "js": [
+        "src/content/shared.js",
+        "src/content/viewed-toggle.js",
+        "src/content/revert-file.js",
+        "src/content/reset-commit.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
   "commands": {
     "sync-now": {
       "suggested_key": {
