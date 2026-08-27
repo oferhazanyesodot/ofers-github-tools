@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Ofer's GitHub Tools",
   "version": "2.1.0",
-  "description": "A personal GitHub toolkit: auto-syncing PR bookmark folder, Copilot usage tracking with burn-rate projections, and more — all using your existing GitHub session.",
+  "description": "Sync GitHub pull requests to bookmarks, track Copilot usage, and add practical pull request review tools.",
   "permissions": [
     "bookmarks",
     "alarms",

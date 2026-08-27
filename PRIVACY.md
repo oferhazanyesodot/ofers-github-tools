@@ -4,25 +4,26 @@
 
 ## Summary
 
-This extension does not collect, store, transmit, or share any personal data with third parties.
+This extension does not sell or share personal data with third parties. It processes GitHub account and pull request data locally to provide its features.
 
 ## What data is accessed
 
 - The extension fetches `https://github.com/pulls` using your existing browser session to read your open pull request list.
 - The extension fetches `https://github.com/settings/copilot` using your existing browser session to read your Copilot AI credit usage.
-- No data is sent anywhere other than to `github.com`.
+- Requests are sent only to `github.com` and use your existing GitHub session.
 - No analytics, telemetry, or tracking of any kind exists in this extension.
 
 ## What data is stored
 
-- **Locally only:** Sync status, PR list, Copilot usage data, daily usage history (for the sparkline chart), and settings are stored in `chrome.storage.local` and `chrome.storage.sync`. This never leaves your device (unless you have Chrome sync enabled for extension storage).
+- **Locally only:** Sync status, PR list, Copilot usage data, and daily usage history are stored in `chrome.storage.local`.
+- **Synced settings:** Extension settings are stored in `chrome.storage.sync` and may be synchronized through your Google account when Chrome Sync is enabled.
 - **Bookmarks:** PR titles and URLs are written to a local bookmark folder. These sync only if you have Chrome bookmark sync enabled (controlled by your Chrome settings, not this extension).
 
 ## What data is NOT collected
 
-- No personal information
+- No personal information is sold or shared with third parties
 - No browsing history
-- No cookies or session tokens (the extension uses Chrome's built-in credential handling)
+- The extension reads GitHub session cookies through Chrome's cookies API when authenticated write requests are needed. Cookie values are used only to make requests to `github.com`, are not stored by the extension, and are not sent to third parties.
 - No analytics or usage metrics
 - No data is transmitted to any third-party server
 
@@ -44,6 +45,7 @@ No other network requests are made. No external services are contacted.
 | `storage` | Store sync status, PR list, usage data, and settings locally |
 | `offscreen` | Parse HTML (fallback only) |
 | `notifications` | Desktop alerts for new PRs and usage thresholds (optional) |
+| `cookies` | Read GitHub session cookies for authenticated requests to `github.com`; values are not stored |
 | `https://github.com/*` | Fetch PR list and Copilot settings pages |
 
 ## Contact

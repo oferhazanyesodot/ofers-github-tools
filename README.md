@@ -67,6 +67,22 @@ The extension uses your existing GitHub browser session cookies. No API tokens o
 5. Click "Load unpacked" and select the extension root directory
 6. Ensure you are logged in to GitHub in Chrome
 
+### Chrome Web Store upload
+
+Build the upload package from the repository root:
+
+```sh
+node scripts/build-chrome.js
+```
+
+Upload `dist/ofers-github-tools-2.1.0.zip` in the Chrome Web Store Developer Dashboard. The script copies only extension runtime files, validates the manifest version and description length, and places `manifest.json` at the ZIP root.
+
+Before submitting, provide the public URL for [PRIVACY.md](PRIVACY.md) in the dashboard's Privacy practices section. The listing must disclose the `bookmarks`, `cookies`, `offscreen`, `storage`, and `notifications` permissions, and explain that GitHub session cookies are used only for requests to `github.com`.
+
+### Demo preview
+
+The tracked `demo/` folder contains local-only preview fixtures and a GitHub-style composition page. Open `demo/demo-frame.html` in a browser to preview the popup with sample data. Demo files are excluded from the Chrome upload package.
+
 ### Firefox
 
 1. Clone or download this repository
@@ -105,11 +121,16 @@ No `identity`, `tabs`, or `scripting` permissions requested.
 ├── manifest.json                 Extension manifest (MV3)
 ├── src/
 │   ├── background/
-│   │   ├── index.js              Service worker entry + revert file logic
+│   │   ├── index.js              Service worker entry and message routing
 │   │   ├── alarm.js              Alarm scheduling
-│   │   └── sync.js              Sync orchestration (PRs + Copilot)
+│   │   ├── sync.js               PR sync orchestration
+│   │   ├── copilot-sync.js       Copilot persistence and projection
+│   │   ├── notifications.js      PR and Copilot notifications
+│   │   ├── badge.js              Badge state updates
+│   │   ├── github-transport.js   Authenticated GitHub requests
+│   │   └── revert-file.js        Web-based file revert service
 │   ├── content/
-│   │   ├── shared.js             Shared utilities (dialogs, banners, metadata)
+│   │   ├── shared.js             Shared dialogs, banners, and page helpers
 │   │   ├── viewed-toggle.js      Toggle all files viewed/unviewed
 │   │   ├── revert-file.js        Revert file menu injection
 │   │   └── reset-commit.js      Reset branch to commit button
@@ -131,11 +152,20 @@ No `identity`, `tabs`, or `scripting` permissions requested.
 │   ├── popup/
 │   │   ├── popup.html            Extension popup
 │   │   ├── popup.css             Popup styles (light/dark)
-│   │   └── popup.js             Popup logic
+│   │   ├── popup.js              Popup orchestration
+│   │   ├── dom.js                Popup DOM bindings
+│   │   ├── status.js             Sync status and footer
+│   │   ├── pr-list.js            Pull request list
+│   │   ├── copilot.js            Copilot usage display
+│   │   └── format.js              Display and SVG helpers
 │   └── options/
 │       ├── options.html           Settings page
 │       ├── options.css            Settings styles
-│       └── options.js            Settings logic
+│       ├── options.js             Settings orchestration
+│       ├── dom.js                 Settings DOM bindings
+│       ├── form.js                Form state and validation
+│       ├── import-export.js        Settings import/export
+│       └── toast.js               Toast notifications
 ├── scripts/
 │   ├── create-icons.js           Icon generation
 │   ├── create-store-assets.js   Store asset generation

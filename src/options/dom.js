@@ -1,0 +1,18 @@
+export const elements = {
+  query: document.getElementById("query"),
+  interval: document.getElementById("interval"),
+  folderName: document.getElementById("folder-name"),
+  showDraft: document.getElementById("show-draft"),
+  groupByRepo: document.getElementById("group-by-repo"),
+  notifications: document.getElementById("notifications"),
+  staleDays: document.getElementById("stale-days"),
+  copilotTracking: document.getElementById("copilot-tracking"),
+  copilotWorkdays: document.getElementById("copilot-workdays"),
+  copilotAlert: document.getElementById("copilot-alert"),
+  saveButton: document.getElementById("save-btn"),
+  resetButton: document.getElementById("reset-btn"),
+  exportButton: document.getElementById("export-btn"),
+  importButton: document.getElementById("import-btn"),
+  importExportArea: document.getElementById("import-export-area"),
+  toast: document.getElementById("toast"),
+};

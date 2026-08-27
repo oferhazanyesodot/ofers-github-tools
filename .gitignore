@@ -4,6 +4,7 @@ Thumbs.db
 *.crx
 *.pem
 *.zip
+dist/
 store-assets/
 .vscode/
 firefox/

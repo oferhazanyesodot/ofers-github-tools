@@ -1,0 +1,18 @@
+export const elements = {
+  status: document.getElementById("status"),
+  syncButton: document.getElementById("sync-btn"),
+  optionsButton: document.getElementById("options-btn"),
+  footer: document.getElementById("footer"),
+  prList: document.getElementById("pr-list"),
+  copilotUsage: document.getElementById("copilot-usage"),
+  copilotStats: document.getElementById("copilot-stats"),
+  copilotBar: document.getElementById("copilot-bar"),
+  copilotBarProjected: document.getElementById("copilot-bar-projected"),
+  copilotBarContainer: document.getElementById("copilot-bar-container"),
+  copilotDetails: document.getElementById("copilot-details"),
+  copilotProjection: document.getElementById("copilot-projection"),
+  copilotTitle: document.getElementById("copilot-title-link"),
+  copilotBody: document.getElementById("copilot-body"),
+  copilotCollapse: document.getElementById("copilot-collapse"),
+  copilotSparkline: document.getElementById("copilot-sparkline"),
+};
