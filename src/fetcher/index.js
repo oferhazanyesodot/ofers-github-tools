@@ -14,6 +14,7 @@
 import { extractPRsFromPayload } from "./parser.js";
 import { getSettings } from "../shared/settings.js";
 import { buildPRUrl } from "../shared/constants.js";
+import { githubFetch } from "../background/github-transport.js";
 
 // ─── Public ──────────────────────────────────────────────────────────────────
 
@@ -38,8 +39,7 @@ export async function fetchPRs() {
 
 async function tryFetchJSON(url) {
   try {
-    const response = await fetch(url, {
-      credentials: "include",
+    const response = await githubFetch(url, {
       redirect: "manual",
       headers: { Accept: "application/json" },
     });
@@ -76,8 +76,7 @@ async function tryFetchJSON(url) {
 // ─── Strategy 2: HTML + Offscreen ────────────────────────────────────────────
 
 async function tryFetchHTML(url) {
-  const response = await fetch(url, {
-    credentials: "include",
+  const response = await githubFetch(url, {
     headers: { Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" },
   });
 

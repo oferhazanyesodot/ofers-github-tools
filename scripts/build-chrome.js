@@ -72,6 +72,15 @@ fs.mkdirSync(DIST, { recursive: true });
 for (const file of [...new Set(files)]) copyFile(file);
 
 const archive = path.join(ROOT, "dist", `ofers-github-tools-${manifest.version}.zip`);
-execFileSync("zip", ["-qr", archive, "."], { cwd: DIST });
+
+if (process.platform === "win32") {
+  // Use PowerShell's Compress-Archive on Windows
+  execFileSync("powershell", [
+    "-NoProfile", "-Command",
+    `Compress-Archive -Path '${path.join(DIST, "*")}' -DestinationPath '${archive}' -Force`
+  ]);
+} else {
+  execFileSync("zip", ["-qr", archive, "."], { cwd: DIST });
+}
 
 console.log(`Built ${path.relative(ROOT, archive)}`);

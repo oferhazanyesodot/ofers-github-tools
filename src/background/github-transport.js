@@ -19,7 +19,7 @@ export async function githubFetch(url, options = {}) {
     Cookie: cookieHeader,
   };
   const method = (options.method || "GET").toUpperCase();
-  const redirect = method === "GET" ? "follow" : "manual";
+  const redirect = options.redirect || (method === "GET" ? "follow" : "manual");
 
   if (method === "POST") {
     headers.Origin = "https://github.com";

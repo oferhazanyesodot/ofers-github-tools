@@ -23,8 +23,8 @@
  */
 export async function fetchCopilotUsage() {
   try {
-    const response = await fetch("https://github.com/settings/copilot", {
-      credentials: "include",
+    const { githubFetch } = await import("../background/github-transport.js");
+    const response = await githubFetch("https://github.com/settings/copilot", {
       headers: {
         Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       },
