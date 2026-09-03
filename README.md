@@ -68,29 +68,28 @@ The extension uses your existing GitHub browser session cookies. No API tokens o
 5. Click "Load unpacked" and select the extension root directory
 6. Ensure you are logged in to GitHub in Chrome
 
-### Chrome Web Store upload
+### Build (Chrome + Firefox, one package)
 
-Build the upload package from the repository root:
+Build the universal upload package from the repository root:
 
 ```sh
-node scripts/build-chrome.js
+node scripts/build.js
 ```
 
-Upload `dist/ofers-github-tools-2.1.0.zip` in the Chrome Web Store Developer Dashboard. The script copies only extension runtime files, validates the manifest version and description length, and places `manifest.json` at the ZIP root.
+This produces a single `dist/ofers-github-tools-<version>.zip` that you upload to **both** the Chrome Web Store and Firefox AMO. One manifest serves both browsers: it declares both `background.service_worker` (Chrome) and `background.scripts` (Firefox), plus `browser_specific_settings.gecko` for Firefox. Each browser reads the fields it supports and ignores the rest (works in Chrome 121+ and Firefox 121+). The HTML-parsing fallback feature-detects `DOMParser` vs the Chrome offscreen document at runtime, so no browser-specific code is needed.
 
-Before submitting, provide the public URL for [PRIVACY.md](PRIVACY.md) in the dashboard's Privacy practices section. The listing must disclose the `bookmarks`, `cookies`, `offscreen`, `storage`, and `notifications` permissions, and explain that GitHub session cookies are used only for requests to `github.com`.
+The script copies only extension runtime files, validates the manifest version and description length, and places `manifest.json` at the ZIP root.
+
+Before submitting, provide the public URL for [PRIVACY.md](PRIVACY.md) in each store's privacy section. The listing must disclose the `bookmarks`, `cookies`, `offscreen`, `storage`, and `notifications` permissions, and explain that GitHub session cookies are used only for requests to `github.com`.
 
 ### Demo preview
 
-The tracked `demo/` folder contains local-only preview fixtures and a GitHub-style composition page. Open `demo/demo-frame.html` in a browser to preview the popup with sample data. Demo files are excluded from the Chrome upload package.
+The tracked `demo/` folder contains local-only preview fixtures and a GitHub-style composition page. Open `demo/demo-frame.html` in a browser to preview the popup with sample data. Demo files are excluded from the upload package.
 
-### Firefox
+### Load unpacked for testing
 
-1. Clone or download this repository
-2. Generate icons: `node scripts/create-icons.js`
-3. Build the Firefox version: `node scripts/build-firefox.js`
-4. Open `about:debugging#/runtime/this-firefox`
-5. Click "Load Temporary Add-on" and select `firefox/manifest.json`
+- **Chrome:** `chrome://extensions` → Developer mode → "Load unpacked" → select the repo root.
+- **Firefox:** `about:debugging#/runtime/this-firefox` → "Load Temporary Add-on" → select `manifest.json`.
 
 ## Privacy
 
@@ -169,8 +168,8 @@ No `identity`, `tabs`, or `scripting` permissions requested.
 │       └── toast.js               Toast notifications
 ├── scripts/
 │   ├── create-icons.js           Icon generation
-│   ├── create-store-assets.js   Store asset generation
-│   └── build-firefox.js         Firefox build script
+│   └── build.js                  Universal build (Chrome + Firefox, one zip)
+├── screenshots/                  Store screenshot generation (dev-only)
 ├── PRIVACY.md                    Privacy policy
 └── README.md
 ```

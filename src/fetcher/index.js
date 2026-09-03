@@ -73,7 +73,12 @@ async function tryFetchJSON(url) {
   }
 }
 
-// ─── Strategy 2: HTML + Offscreen ────────────────────────────────────────────
+// ─── Strategy 2: HTML + DOM parsing ──────────────────────────────────────────
+//
+// The HTML fallback needs a DOM parser. Chrome MV3 service workers don't have
+// `DOMParser`, so we delegate to an offscreen document. Firefox background
+// scripts (and any context with `DOMParser`) parse inline. We feature-detect at
+// runtime so the same file works in both builds.
 
 async function tryFetchHTML(url) {
   const response = await githubFetch(url, {
@@ -94,14 +99,70 @@ async function tryFetchHTML(url) {
     } catch (_) { /* not JSON */ }
   }
 
-  // Delegate to offscreen document for DOM parsing
-  await ensureOffscreenDocument();
+  // Firefox path: parse inline with the available DOMParser.
+  if (canParseInline()) {
+    return parseHTMLForPRs(text);
+  }
 
+  // Chrome path: delegate to the offscreen document.
+  await ensureOffscreenDocument();
   const result = await chrome.runtime.sendMessage({ action: "parseHTML", html: text });
   if (!result) throw new Error("Offscreen document did not respond");
   if (result.loggedOut) return null;
-
   return result.prs;
+}
+
+/**
+ * True when this runtime can parse HTML without an offscreen document, i.e. it
+ * exposes DOMParser and lacks the offscreen API (Firefox background scripts).
+ */
+function canParseInline() {
+  return typeof DOMParser !== "undefined" && !globalThis.chrome?.offscreen;
+}
+
+/**
+ * Parse GitHub HTML into PR objects using DOMParser. Mirrors the logic in the
+ * offscreen document so both code paths behave identically.
+ */
+function parseHTMLForPRs(html) {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+
+  const scripts = doc.querySelectorAll(
+    'script[type="application/json"][data-target="react-partial.embeddedData"], script[type="application/json"]'
+  );
+  for (const script of scripts) {
+    const content = script.textContent.trim();
+    if (!content.includes("pullsDashboardSurfaceContentRoute") && !content.includes("pull_request")) continue;
+    try {
+      const prs = extractPRsFromPayload(JSON.parse(content));
+      if (prs?.length > 0) return prs;
+    } catch (_) { /* not the payload we want */ }
+  }
+
+  // Fallback: scrape anchor links to PRs.
+  const links = doc.querySelectorAll('a[href*="/pull/"]');
+  const seen = new Set();
+  const prs = [];
+  for (const link of links) {
+    const href = link.getAttribute("href");
+    if (!href) continue;
+    const match = href.match(/^\/([^/]+\/[^/]+)\/pull\/(\d+)$/);
+    if (!match) continue;
+    const url = `https://github.com${href}`;
+    if (seen.has(url)) continue;
+    seen.add(url);
+    prs.push({
+      url,
+      repo: match[1].split("/")[1] || match[1],
+      repoFullName: match[1],
+      title: link.textContent.trim() || `PR #${match[2]}`,
+      number: parseInt(match[2], 10),
+      isDraft: false,
+      updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    });
+  }
+  return prs;
 }
 
 // ─── Offscreen Document Lifecycle ────────────────────────────────────────────

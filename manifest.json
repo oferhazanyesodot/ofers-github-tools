@@ -16,6 +16,7 @@
   ],
   "background": {
     "service_worker": "src/background/index.js",
+    "scripts": ["src/background/index.js"],
     "type": "module"
   },
   "icons": {
@@ -55,6 +56,12 @@
         "default": "Alt+Shift+P"
       },
       "description": "Sync PRs now"
+    }
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "github-pr-bookmarks@oferhazanyesodot",
+      "strict_min_version": "121.0"
     }
   }
 }
