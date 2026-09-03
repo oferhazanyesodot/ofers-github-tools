@@ -1,8 +1,8 @@
 import { getSettings, saveSettings } from "../shared/settings.js";
 import { applyTheme } from "../shared/theme.js";
+import { reportOsScheme } from "../shared/os-scheme.js";
 import { elements } from "./dom.js";
 import { loadForm, readFormSettings, resetForm } from "./form.js";
-import { showToast } from "./toast.js";
 
 // True once the initial form load is done, so programmatic value-setting during
 // load doesn't trigger a save-storm back to storage.
@@ -13,7 +13,7 @@ let ready = false;
  * background is notified so an open popup and the sync engine pick up changes
  * (new query, bookmarks toggled on/off, etc.) without a manual Save.
  */
-async function persistAll({ notify = true, toast = true } = {}) {
+async function persistAll({ notify = true } = {}) {
   const form = readFormSettings();
   const current = await getSettings();
   // Preserve runtime-managed state that isn't represented in the form.
@@ -27,7 +27,6 @@ async function persistAll({ notify = true, toast = true } = {}) {
       // The service worker may be inactive while the options page is open.
     }
   }
-  if (toast) showToast("Saved", 1200);
 }
 
 // Debounce for text/number typing so we don't hit storage on every keystroke.
@@ -181,20 +180,53 @@ if (swatchContainer) {
   elements.accentColor.addEventListener("input", syncSwatchSelection);
 }
 
+// Each preset button toggles its query on/off independently, so you can enable
+// e.g. both "My PRs" and "Review requested" at once. The active state is
+// reflected on the buttons and kept in sync with manual edits to the textarea.
+function currentQueryLines() {
+  return elements.query.value
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+}
+
+function syncPresetSelection() {
+  const lines = new Set(currentQueryLines());
+  document.querySelectorAll(".preset-btn").forEach((button) => {
+    button.classList.toggle("selected", lines.has(button.dataset.query));
+  });
+}
+
 document.querySelectorAll(".preset-btn").forEach((button) => {
   button.addEventListener("click", () => {
-    elements.query.value = button.dataset.query;
+    const preset = button.dataset.query;
+    const lines = currentQueryLines();
+    const idx = lines.indexOf(preset);
+    if (idx >= 0) {
+      lines.splice(idx, 1); // toggle off
+    } else {
+      lines.push(preset); // toggle on
+    }
+    elements.query.value = lines.join("\n");
+    syncPresetSelection();
     if (ready) persistAll();
   });
 });
+
+// Keep preset highlighting in sync when the user edits the textarea directly.
+elements.query.addEventListener("input", syncPresetSelection);
 
 // ─── Boot ────────────────────────────────────────────────────────────────────
 wireAutoSave();
 loadForm().then(() => {
   syncSwatchSelection();
+  syncPresetSelection();
   refreshFeatureCards();
   refreshToggleInputs();
   refreshDependencies();
   ready = true;
 });
 getSettings().then(applyTheme);
+
+// Report the OS scheme so the toolbar icon follows the system when theme=system.
+reportOsScheme();

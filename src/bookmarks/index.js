@@ -44,6 +44,12 @@ export async function synchronizeBookmarks(prs) {
   // Separate stale PRs if threshold is configured
   const { current, stale } = partitionByAge(sorted, settings.staleThresholdDays);
 
+  // When PRs come from more than one labeled query, group them into a subfolder
+  // per source (e.g. "Authored", "Review requested") so it's clear which query
+  // each PR belongs to. This takes precedence over repo grouping.
+  const distinctSources = new Set(current.flatMap((pr) => pr.sources || []));
+  const groupBySource = distinctSources.size > 1;
+
   // Group either when the user opted in, or automatically once the number of
   // distinct repos reaches the configured auto-group threshold.
   const distinctRepos = new Set(current.map((pr) => pr.repo)).size;
@@ -51,7 +57,9 @@ export async function synchronizeBookmarks(prs) {
     settings.groupByRepo ||
     (settings.autoGroupThreshold > 0 && distinctRepos >= settings.autoGroupThreshold);
 
-  if (shouldGroup) {
+  if (groupBySource) {
+    await syncGroupedBySource(rootFolder, current, settings);
+  } else if (shouldGroup) {
     await syncGroupedByRepo(rootFolder, current, settings);
   } else {
     // Clean up any leftover repo subfolders from when groupByRepo was enabled
@@ -108,6 +116,47 @@ async function syncFlat(folder, prs, settings) {
   }
 
   await reorderBookmarks(folder.id, prs);
+}
+
+// ─── Grouped by Source (query) Sync ──────────────────────────────────────────
+
+/**
+ * Organize PRs into a subfolder per source query label. A PR that matched
+ * several queries is filed under its first source to avoid duplicate bookmarks.
+ */
+async function syncGroupedBySource(rootFolder, prs, settings) {
+  const bySource = new Map();
+  for (const pr of prs) {
+    const label = (pr.sources && pr.sources[0]) || "PRs";
+    const group = bySource.get(label) || [];
+    group.push(pr);
+    bySource.set(label, group);
+  }
+
+  const existingChildren = await chrome.bookmarks.getChildren(rootFolder.id);
+  const existingFolders = new Map();
+
+  for (const child of existingChildren) {
+    if (child.url) {
+      // A leftover top-level bookmark from flat mode — remove it.
+      await chrome.bookmarks.remove(child.id);
+    } else {
+      existingFolders.set(child.title, child);
+    }
+  }
+
+  // Remove source folders that no longer have PRs (keep the stale "Old PRs").
+  for (const [title, folder] of existingFolders) {
+    if (title === "Old PRs") continue;
+    if (!bySource.has(title)) {
+      await chrome.bookmarks.removeTree(folder.id);
+    }
+  }
+
+  for (const [label, sourcePrs] of bySource) {
+    const folder = await getOrCreateFolder(label, rootFolder.id);
+    await syncFlat(folder, sourcePrs, settings);
+  }
 }
 
 // ─── Grouped by Repo Sync ────────────────────────────────────────────────────

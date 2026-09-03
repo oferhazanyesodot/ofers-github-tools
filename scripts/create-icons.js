@@ -3,7 +3,10 @@
  * Usage: node create-icons.js
  *
  * Creates PNG icons with a GitHub-style PR merge icon.
- * - Toolbar icons (16, 48): white icon on transparent background
+ * - Toolbar icons (16, 48): rendered in both light and dark variants so the
+ *   icon stays visible on light and dark browser toolbars. The dark variant
+ *   uses a dark glyph (for light toolbars); the light variant uses a white
+ *   glyph (for dark toolbars).
  * - Store icon (128): white icon on dark rounded-rect background
  */
 
@@ -14,7 +17,7 @@ const zlib = require("zlib");
 /**
  * Draw the GitHub PR icon onto a pixel buffer.
  */
-function drawPRIcon(size, { withBackground = false } = {}) {
+function drawPRIcon(size, { withBackground = false, glyph = [255, 255, 255], backgroundColor = [36, 41, 47] } = {}) {
   const pixels = Buffer.alloc(size * size * 4, 0);
 
   const setPixel = (x, y, r, g, b, a) => {
@@ -90,11 +93,11 @@ function drawPRIcon(size, { withBackground = false } = {}) {
   // Draw background for store icon
   if (withBackground) {
     const radius = Math.round(size * 0.18);
-    fillRoundedRect(0, 0, size, size, radius, 36, 41, 47); // #24292f
+    fillRoundedRect(0, 0, size, size, radius, ...backgroundColor);
   }
 
   // Icon color
-  const color = [255, 255, 255]; // white
+  const color = glyph;
 
   // Left vertical line (source branch)
   drawLine(3.75 * s, 4 * s, 3.75 * s, 12 * s, 1.4 * s, ...color);
@@ -183,12 +186,45 @@ if (!fs.existsSync(iconsDir)) {
   fs.mkdirSync(iconsDir);
 }
 
-// Toolbar icons: white on transparent
+// Toolbar icons — clean transparent glyphs (no background), swapped to match
+// the toolbar theme:
+//  - icon{size}-light.png → WHITE glyph, for DARK toolbars
+//  - icon{size}-dark.png  → DARK glyph,  for LIGHT toolbars
+// Firefox picks these automatically via manifest "theme_icons"; Chromium swaps
+// them at runtime via chrome.action.setIcon.
+//
+// The default icon{size}.png uses a mid-tone accent color that stays legible on
+// both light and dark toolbars, so the brief pre-swap fallback never vanishes.
+// Toolbar icon variants, one per extension theme (chosen in options). Clean
+// transparent glyphs — no background, so no borders. The background swaps to
+// the matching file whenever the theme setting changes:
+//   light        → icon{size}-light.png  (dark glyph)
+//   dark         → icon{size}-dark.png   (white glyph)
+//   hello-kitty  → icon{size}-kitty.png  (pink glyph)
+//   system / default → icon{size}.png    (mid-tone, legible on light + dark)
+const WHITE = [255, 255, 255];
+const DARK = [36, 41, 47];    // #24292f
+const PINK = [255, 95, 162];  // #ff5fa2 — hello kitty accent
+const MID = [88, 116, 156];   // muted blue-grey — visible on light and dark
+
+const VARIANTS = {
+  // "light" theme has a light background, so use a DARK glyph.
+  "light": DARK,
+  // "dark" theme has a dark background, so use a WHITE glyph.
+  "dark": WHITE,
+  "kitty": PINK,
+};
+
 for (const size of [16, 48]) {
-  const pixels = drawPRIcon(size, { withBackground: false });
-  const png = encodePNG(pixels, size, size);
-  fs.writeFileSync(path.join(iconsDir, `icon${size}.png`), png);
-  console.log(`Created icons/icon${size}.png (${png.length} bytes) - transparent`);
+  for (const [name, color] of Object.entries(VARIANTS)) {
+    const png = encodePNG(drawPRIcon(size, { glyph: color }), size, size);
+    fs.writeFileSync(path.join(iconsDir, `icon${size}-${name}.png`), png);
+    console.log(`Created icons/icon${size}-${name}.png (${png.length} bytes)`);
+  }
+  // Default/system fallback: mid-tone, legible on either toolbar color.
+  const def = encodePNG(drawPRIcon(size, { glyph: MID }), size, size);
+  fs.writeFileSync(path.join(iconsDir, `icon${size}.png`), def);
+  console.log(`Created icons/icon${size}.png (${def.length} bytes) - default/system`);
 }
 
 // Store icon: white on dark rounded background

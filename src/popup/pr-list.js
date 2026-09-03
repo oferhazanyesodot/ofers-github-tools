@@ -5,14 +5,18 @@ import { copySvg, escapeHtml, formatDate } from "./format.js";
 // Kept in module scope so event handlers can re-render after a pin toggle.
 let currentSettings = null;
 let newUrls = new Set();
+// URLs the user opened from the popup — treated as read locally so the unread
+// dot clears immediately, without waiting for GitHub to report it read.
+let readUrls = new Set();
 
 export async function loadPRList() {
   const [data, settings] = await Promise.all([
-    chrome.storage.local.get(["prList", "newPrUrls"]),
+    chrome.storage.local.get(["prList", "newPrUrls", "readPRs"]),
     getSettings(),
   ]);
   currentSettings = settings;
   newUrls = new Set(data.newPrUrls || []);
+  readUrls = new Set(data.readPRs || []);
   let prs = data.prList || [];
 
   const excluded = parseExcluded(settings.excludeRepos);
@@ -40,7 +44,12 @@ export async function loadPRList() {
 
   elements.prList.classList.toggle("compact", settings.density === "compact");
 
-  let html = capped.map((pr) => renderPRItem(pr, settings, pinned, newUrls)).join("");
+  // Only surface source tags when PRs actually come from more than one query.
+  const distinctSources = new Set();
+  for (const pr of prs) for (const s of pr.sources || []) distinctSources.add(s);
+  const showSources = distinctSources.size > 1;
+
+  let html = capped.map((pr) => renderPRItem(pr, settings, pinned, newUrls, showSources, readUrls)).join("");
   if (hiddenCount > 0) {
     html += `<div class="pr-more">+${hiddenCount} more</div>`;
   }
@@ -126,10 +135,81 @@ function bindItemEvents() {
   });
 
   elements.prList.querySelectorAll(".pr-item").forEach((item) => {
-    item.addEventListener("click", () => {
-      chrome.tabs.create({ url: item.dataset.url });
+    item.addEventListener("click", async () => {
+      const url = item.dataset.url;
+      await markRead(url);
+      await openPR(url);
     });
   });
+}
+
+/**
+ * Open a PR according to the user's tab preferences:
+ *  - reuseExistingTab: if the PR is already open in a tab, focus it instead of
+ *    opening a duplicate.
+ *  - openInCurrentTab: navigate the active tab instead of opening a new one.
+ */
+async function openPR(url) {
+  const settings = currentSettings || {};
+
+  if (settings.reuseExistingTab) {
+    const existing = await findOpenTab(url);
+    if (existing) {
+      await chrome.tabs.update(existing.id, { active: true });
+      if (existing.windowId != null) {
+        try { await chrome.windows.update(existing.windowId, { focused: true }); } catch { /* ignore */ }
+      }
+      return;
+    }
+  }
+
+  if (settings.openInCurrentTab) {
+    const [active] = await chrome.tabs.query({ active: true, currentWindow: true });
+    // Don't navigate the extension's own pages; fall back to a new tab.
+    if (active && active.id != null && !(active.url || "").startsWith("chrome-extension://")) {
+      await chrome.tabs.update(active.id, { url });
+      return;
+    }
+  }
+
+  await chrome.tabs.create({ url });
+}
+
+/**
+ * Find an open tab already showing this PR. Matches the exact URL and the URL
+ * without a hash/query so a PR opened on a sub-tab (e.g. /files) still counts.
+ */
+async function findOpenTab(url) {
+  const base = url.split("#")[0].split("?")[0];
+  try {
+    const tabs = await chrome.tabs.query({ url: `${base}*` });
+    if (tabs.length > 0) return tabs[0];
+  } catch {
+    // tabs.query with a URL pattern needs the "tabs" permission's host access;
+    // fall back to scanning all tabs.
+  }
+  const all = await chrome.tabs.query({});
+  return all.find((t) => (t.url || "").split("#")[0].split("?")[0] === base) || null;
+}
+
+/**
+ * Mark a PR as locally read: persist it, update the in-memory set, and clear
+ * its unread dot in the DOM right away (no full re-render, so the popup doesn't
+ * flicker as the tab opens).
+ */
+async function markRead(url) {
+  if (!url || readUrls.has(url)) return;
+  readUrls.add(url);
+  await chrome.storage.local.set({ readPRs: [...readUrls] });
+  const item = elements.prList.querySelector(`.pr-item[data-url="${cssEscape(url)}"]`);
+  item?.querySelector(".pr-unread")?.remove();
+}
+
+/**
+ * Escape a value for safe use inside a CSS attribute selector.
+ */
+function cssEscape(value) {
+  return (window.CSS && CSS.escape) ? CSS.escape(value) : value.replace(/["\\]/g, "\\$&");
 }
 
 function setupCopyAll(prs, enabled = true) {
@@ -151,15 +231,18 @@ function setCopyAllVisible(visible) {
   if (elements.copyAllButton) elements.copyAllButton.classList.toggle("hidden", !visible);
 }
 
-function renderPRItem(pr, settings, pinned = new Set(), newSet = new Set()) {
+function renderPRItem(pr, settings, pinned = new Set(), newSet = new Set(), showSources = false, readSet = new Set()) {
   const isPinned = pinned.has(pr.url);
   const itemClass = isPinned ? "pr-item pinned" : "pr-item";
   const iconClass = pr.isDraft ? "pr-icon draft" : "pr-icon";
   const draftBadge = pr.isDraft ? '<span class="draft-badge">DRAFT</span>' : "";
   const numberPrefix = settings.showPRNumber && pr.number ? `<span class="pr-number">#${pr.number}</span> ` : "";
 
-  const unreadDot = settings.showUnread && pr.unread ? '<span class="pr-unread" title="Unread"></span>' : "";
+  const unreadDot = settings.showUnread && pr.unread && !readSet.has(pr.url)
+    ? '<span class="pr-unread" title="Unread"></span>'
+    : "";
   const newTag = settings.showNewTag && newSet.has(pr.url) ? '<span class="new-badge">NEW</span>' : "";
+  const sourceTags = showSources ? renderSourceTags(pr) : "";
 
   return `
     <div class="${itemClass}" data-url="${escapeHtml(pr.url)}">
@@ -170,7 +253,8 @@ function renderPRItem(pr, settings, pinned = new Set(), newSet = new Set()) {
       <div class="pr-content">
         <div class="pr-title">${newTag}${numberPrefix}${escapeHtml(pr.title)}</div>
         <div class="pr-meta">
-          <span class="pr-repo">${escapeHtml(pr.repo)}</span>
+          <span class="pr-repo" title="${escapeHtml(pr.repoFullName || pr.repo)}">${escapeHtml(repoLabel(pr, settings))}</span>
+          ${sourceTags}
           ${draftBadge}
           ${commentCount(pr, settings)}
           ${createdAge(pr, settings)}
@@ -188,6 +272,24 @@ function renderPRItem(pr, settings, pinned = new Set(), newSet = new Set()) {
 }
 
 /**
+ * Choose the repo label: "owner/repo" when the owner toggle is on, else "repo".
+ */
+function repoLabel(pr, settings) {
+  if (settings.showRepoOwner && pr.repoFullName) return pr.repoFullName;
+  return pr.repo;
+}
+
+/**
+ * A full, human-readable date-time for tooltips (e.g. "Sep 3, 2026, 3:12 PM").
+ */
+function fullTimestamp(ts) {
+  return new Date(ts).toLocaleString("en-US", {
+    month: "short", day: "numeric", year: "numeric",
+    hour: "numeric", minute: "2-digit",
+  });
+}
+
+/**
  * Render when the PR was opened (created), separate from the last-updated time.
  */
 function createdAge(pr, settings) {
@@ -195,7 +297,8 @@ function createdAge(pr, settings) {
   const ts = new Date(pr.createdAt).getTime();
   if (!Number.isFinite(ts)) return "";
   const time = formatDate(ts, settings.dateFormat);
-  return `<span class="pr-created" title="Opened ${time}">opened ${time}</span>`;
+  const tip = settings.fullTimestampTooltip ? `Opened ${fullTimestamp(ts)}` : `Opened ${time}`;
+  return `<span class="pr-created" title="${escapeHtml(tip)}">opened ${time}</span>`;
 }
 
 /**
@@ -207,9 +310,14 @@ function ageIndicator(pr, settings) {
   const time = formatDate(ts, settings.dateFormat);
   const threshold = settings.staleThresholdDays;
   const isStale = threshold > 0 && Date.now() - ts > threshold * 24 * 60 * 60 * 1000;
-  if (!isStale) return `<span class="pr-age">${time}</span>`;
+  const fullTip = settings.fullTimestampTooltip ? `Updated ${fullTimestamp(ts)}` : "";
+  if (!isStale) {
+    const title = fullTip ? ` title="${escapeHtml(fullTip)}"` : "";
+    return `<span class="pr-age"${title}>${time}</span>`;
+  }
   const days = Math.floor((Date.now() - ts) / (24 * 60 * 60 * 1000));
-  return `<span class="pr-age stale" title="No activity for ${days} days">${time}</span>`;
+  const staleTip = fullTip ? `${fullTip} · no activity for ${days} days` : `No activity for ${days} days`;
+  return `<span class="pr-age stale" title="${escapeHtml(staleTip)}">${time}</span>`;
 }
 
 function starSvg(filled) {
@@ -222,4 +330,32 @@ function starSvg(filled) {
 function commentCount(pr, settings) {
   if (!settings.showCommentCount || !pr.commentCount) return "";
   return `<span class="pr-comments" title="${pr.commentCount} comments">💬 ${pr.commentCount}</span>`;
+}
+
+/**
+ * Render one small tag per source query that surfaced this PR (e.g. "Authored",
+ * "Review requested"), so it's clear where each PR came from when several
+ * queries are combined. Each label gets a stable color.
+ */
+function renderSourceTags(pr) {
+  const sources = pr.sources || [];
+  if (sources.length === 0) return "";
+  return sources
+    .map((label) => {
+      const hue = labelHue(label);
+      const style = `--tag-hue:${hue}`;
+      return `<span class="pr-source" style="${style}" title="From query: ${escapeHtml(label)}">${escapeHtml(label)}</span>`;
+    })
+    .join("");
+}
+
+/**
+ * Map a label to a stable hue (0–360) so the same source always looks the same.
+ */
+function labelHue(label) {
+  let hash = 0;
+  for (let i = 0; i < label.length; i++) {
+    hash = (hash * 31 + label.charCodeAt(i)) % 360;
+  }
+  return hash;
 }

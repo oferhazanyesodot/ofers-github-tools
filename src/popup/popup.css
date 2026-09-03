@@ -61,6 +61,10 @@
   --hover: #ffd6e8;
 }
 
+html, body {
+  height: 100%;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   width: 380px;
@@ -68,6 +72,14 @@ body {
   color: var(--fg);
   background: var(--bg);
   font-size: var(--popup-font-size, 12px);
+
+  /* Lay the popup out as a column that fits within the browser's max popup
+     height. Fixed sections (header, status, copilot, actions, footer) keep
+     their size; only the PR list flexes and scrolls, so the popup itself
+     never grows an outer scrollbar. */
+  display: flex;
+  flex-direction: column;
+  max-height: 880px;
 }
 
 h1 {
@@ -77,6 +89,7 @@ h1 {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .byline {
@@ -95,6 +108,7 @@ h1 {
 /* ─── Status ────────────────────────────────────────────────────────────── */
 
 .status {
+  flex-shrink: 0;
   padding: 8px 12px;
   border-radius: 6px;
   font-size: 12px;
@@ -110,7 +124,11 @@ h1 {
 /* ─── PR List ───────────────────────────────────────────────────────────── */
 
 .pr-list {
-  max-height: 300px;
+  flex: 1 1 auto;
+  /* Grow to fill leftover height, but keep a sensible minimum so the list is
+     always usable, and cap it so it doesn't push the actions off-screen. */
+  min-height: 180px;
+  max-height: 520px;
   overflow-y: auto;
   margin-bottom: 10px;
   border-radius: 6px;
@@ -191,10 +209,30 @@ h1 {
   display: flex;
   gap: 6px;
   align-items: center;
+  /* Keep the meta on a single line; the repo name truncates instead of
+     wrapping and shoving badges/age onto a new row. */
+  flex-wrap: nowrap;
+  overflow: hidden;
 }
 
 .pr-item .pr-repo {
   font-weight: 500;
+  /* Repo names can be long (e.g. "noam-frontend-fundamentals"); let it shrink
+     and ellipsize so the source tag and age stay on the same line. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* Badges, tags and age keep their size and never get squeezed away. */
+.pr-item .pr-source,
+.pr-item .draft-badge,
+.pr-item .pr-comments,
+.pr-item .pr-age,
+.pr-item .pr-created {
+  flex-shrink: 0;
 }
 
 .pr-item .draft-badge {
@@ -204,6 +242,20 @@ h1 {
   background: #6e7781;
   color: #fff;
   font-weight: 500;
+}
+
+/* Source-query tag: shows which query surfaced the PR (e.g. "Authored",
+   "Review requested"). Hue is set per label via the --tag-hue variable. */
+.pr-item .pr-source {
+  font-size: 9px;
+  line-height: 1.4;
+  padding: 1px 5px;
+  border-radius: 8px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: hsl(var(--tag-hue, 212), 65%, 42%);
+  background: hsla(var(--tag-hue, 212), 70%, 55%, 0.16);
+  border: 1px solid hsla(var(--tag-hue, 212), 70%, 55%, 0.35);
 }
 
 .pr-item .pr-copy {
@@ -279,6 +331,7 @@ h1 {
   justify-content: flex-end;
   margin-bottom: 4px;
   min-height: 0;
+  flex-shrink: 0;
 }
 
 .copy-all-btn {
@@ -352,6 +405,7 @@ h1 {
 /* ─── Copilot Usage ─────────────────────────────────────────────────────── */
 
 .copilot-usage {
+  flex-shrink: 0;
   margin-bottom: 10px;
   padding: 10px 12px;
   border: 1px solid var(--card-border);
@@ -520,6 +574,7 @@ h1 {
 .actions {
   display: flex;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 button {
@@ -538,6 +593,16 @@ button {
 button:hover  { filter: brightness(0.96); }
 button:active { filter: brightness(0.92); }
 
+/* Spinning arrow shown on the Sync button while a sync is in progress. */
+#sync-btn .spin {
+  display: inline-block;
+  vertical-align: middle;
+  animation: sync-spin 0.8s linear infinite;
+}
+@keyframes sync-spin {
+  to { transform: rotate(360deg); }
+}
+
 #sync-btn {
   background: var(--accent);
   border-color: var(--accent);
@@ -549,9 +614,12 @@ button:active { filter: brightness(0.92); }
 
 .footer {
   margin-top: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
   font-size: 11px;
   color: var(--muted);
   text-align: center;
+  flex-shrink: 0;
 }
 
 /* ─── Dark Mode ─────────────────────────────────────────────────────────── */

@@ -7,14 +7,25 @@ import { ALARM_NAME } from "../shared/constants.js";
 import { setupAlarm } from "./alarm.js";
 import { revertFileInPR } from "./revert-file.js";
 import { syncPRs } from "./sync.js";
+import { refreshThemeIcon, setOsScheme } from "./icon-theme.js";
 
 async function initialize() {
+  await refreshThemeIcon();
   await setupAlarm();
   await syncPRs();
 }
 
 chrome.runtime.onInstalled.addListener(initialize);
 chrome.runtime.onStartup.addListener(initialize);
+
+// Keep the toolbar icon in sync with the theme whenever settings are saved.
+// storage.onChanged wakes the worker even if it was idle, so this is more
+// reliable than depending on a runtime message from the options page.
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "sync" && changes.settings) {
+    refreshThemeIcon();
+  }
+});
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === ALARM_NAME) await syncPRs();
@@ -31,7 +42,15 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message.action === "settingsChanged") {
-    setupAlarm().then(syncPRs).then(() => sendResponse({ done: true }));
+    refreshThemeIcon()
+      .then(setupAlarm)
+      .then(syncPRs)
+      .then(() => sendResponse({ done: true }));
+    return true;
+  }
+
+  if (message.action === "osScheme") {
+    setOsScheme(message.scheme).then(() => sendResponse({ done: true }));
     return true;
   }
 

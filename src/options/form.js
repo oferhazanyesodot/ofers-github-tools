@@ -32,8 +32,10 @@ export async function loadForm() {
 }
 
 export function readFormSettings() {
+  const queries = parseQueryLines(elements.query.value);
   return {
-    query: elements.query.value.trim() || DEFAULTS.query,
+    query: queries[0] || DEFAULTS.query,
+    queries,
     intervalMinutes: Math.max(1, Math.min(60, parseInt(elements.interval.value, 10) || DEFAULTS.intervalMinutes)),
     folderName: elements.folderName.value.trim() || DEFAULTS.folderName,
     showDraftIndicator: elements.showDraft.checked,
@@ -61,6 +63,10 @@ export function readFormSettings() {
     showUnread: elements.showUnread.checked,
     showCreatedAge: elements.showCreatedAge.checked,
     showNewTag: elements.showNewTag.checked,
+    showRepoOwner: elements.showRepoOwner.checked,
+    fullTimestampTooltip: elements.fullTimestampTooltip.checked,
+    openInCurrentTab: elements.openInCurrentTab.checked,
+    reuseExistingTab: elements.reuseExistingTab.checked,
     badgeEnabled: elements.badgeEnabled.checked,
     badgeMode: elements.badgeMode.value || DEFAULTS.badgeMode,
   };
@@ -70,8 +76,29 @@ export function resetForm() {
   applyFormSettings(DEFAULTS);
 }
 
+/**
+ * Split the query textarea into a list of trimmed, non-empty, de-duplicated
+ * queries (one per line).
+ */
+function parseQueryLines(value) {
+  const seen = new Set();
+  const out = [];
+  for (const line of (value || "").split("\n")) {
+    const q = line.trim();
+    if (q && !seen.has(q)) {
+      seen.add(q);
+      out.push(q);
+    }
+  }
+  return out;
+}
+
 function applyFormSettings(settings) {
-  elements.query.value = settings.query;
+  // Prefer the multi-query list; fall back to the single query for older saves.
+  const queries = Array.isArray(settings.queries) && settings.queries.length > 0
+    ? settings.queries
+    : [settings.query];
+  elements.query.value = queries.join("\n");
   elements.interval.value = settings.intervalMinutes;
   elements.folderName.value = settings.folderName;
   elements.showDraft.checked = settings.showDraftIndicator;
@@ -100,6 +127,10 @@ function applyFormSettings(settings) {
   elements.showUnread.checked = settings.showUnread;
   elements.showCreatedAge.checked = settings.showCreatedAge;
   elements.showNewTag.checked = settings.showNewTag;
+  elements.showRepoOwner.checked = settings.showRepoOwner;
+  elements.fullTimestampTooltip.checked = settings.fullTimestampTooltip;
+  elements.openInCurrentTab.checked = settings.openInCurrentTab;
+  elements.reuseExistingTab.checked = settings.reuseExistingTab;
   elements.badgeEnabled.checked = settings.badgeEnabled;
   elements.badgeMode.value = settings.badgeMode;
 }

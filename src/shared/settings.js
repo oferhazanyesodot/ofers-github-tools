@@ -4,6 +4,10 @@
 
 export const DEFAULTS = {
   query: "is:pr state:open archived:false sort:updated-desc author:@me",
+  // Multiple search queries are fetched together and merged (de-duplicated by
+  // PR URL). When empty, `query` above is used as the single query. This lets
+  // you combine e.g. "authored by me" and "review requested from me".
+  queries: [],
   intervalMinutes: 5,
   folderName: "GitHub PRs",
   showDraftIndicator: true,
@@ -36,6 +40,10 @@ export const DEFAULTS = {
   showUnread: true, // show a dot for PRs you haven't read yet
   showCreatedAge: false, // show "opened Xd ago" (created) alongside updated time
   showNewTag: true, // tag PRs that appeared since the previous sync
+  showRepoOwner: false, // show "owner/repo" instead of just "repo"
+  fullTimestampTooltip: false, // always show exact date-time in the age tooltip
+  openInCurrentTab: false, // open PRs in the current tab instead of a new one
+  reuseExistingTab: true, // focus an already-open tab for the PR instead of duplicating
 
   // ─── Badge ─────────────────────────────────────────────────────────────────
   badgeEnabled: true, // when false, no toolbar badge text is shown
@@ -50,6 +58,7 @@ export async function getSettings() {
   const s = data.settings || {};
   return {
     query: s.query || DEFAULTS.query,
+    queries: Array.isArray(s.queries) ? s.queries.filter((q) => typeof q === "string" && q.trim()) : DEFAULTS.queries,
     intervalMinutes: s.intervalMinutes || DEFAULTS.intervalMinutes,
     folderName: s.folderName || DEFAULTS.folderName,
     showDraftIndicator: s.showDraftIndicator ?? DEFAULTS.showDraftIndicator,
@@ -80,10 +89,80 @@ export async function getSettings() {
     showUnread: s.showUnread ?? DEFAULTS.showUnread,
     showCreatedAge: s.showCreatedAge ?? DEFAULTS.showCreatedAge,
     showNewTag: s.showNewTag ?? DEFAULTS.showNewTag,
+    showRepoOwner: s.showRepoOwner ?? DEFAULTS.showRepoOwner,
+    fullTimestampTooltip: s.fullTimestampTooltip ?? DEFAULTS.fullTimestampTooltip,
+    openInCurrentTab: s.openInCurrentTab ?? DEFAULTS.openInCurrentTab,
+    reuseExistingTab: s.reuseExistingTab ?? DEFAULTS.reuseExistingTab,
 
     badgeEnabled: s.badgeEnabled ?? DEFAULTS.badgeEnabled,
     badgeMode: s.badgeMode ?? DEFAULTS.badgeMode,
   };
+}
+
+/**
+ * Derive a short human label for a query from its GitHub qualifiers, so PRs can
+ * be attributed to the query that surfaced them.
+ * @param {string} query
+ * @returns {string}
+ */
+export function labelForQuery(query) {
+  const q = (query || "").toLowerCase();
+  if (/\breview-requested:/.test(q)) return "Review requested";
+  if (/\bauthor:/.test(q)) return "Authored";
+  if (/\bassignee:/.test(q)) return "Assigned";
+  if (/\bmentions:/.test(q)) return "Mentions";
+  if (/\breviewed-by:/.test(q)) return "Reviewed";
+  if (/\binvolves:/.test(q)) return "Involves";
+  return "PRs";
+}
+
+/**
+ * Parse a single query line. Supports an optional "Label: query" prefix so the
+ * user can name a query; otherwise a label is derived from the qualifiers.
+ * @param {string} line
+ * @returns {{label: string, query: string} | null}
+ */
+export function parseQueryLine(line) {
+  const raw = (line || "").trim();
+  if (!raw) return null;
+  // A label prefix is "Word words: is:pr ...". We only treat the text before
+  // the first colon as a label when what follows still looks like a query
+  // (contains a GitHub qualifier like "is:" / "state:" / "author:").
+  const colon = raw.indexOf(":");
+  if (colon > 0) {
+    const maybeLabel = raw.slice(0, colon).trim();
+    const rest = raw.slice(colon + 1).trim();
+    // Treat "Prefix: query" as a label only when the prefix is plain words
+    // (letters/spaces, not a GitHub qualifier) AND the remainder still looks
+    // like a query. This avoids misreading "is:pr ..." as a label.
+    const QUALIFIERS = /^(is|state|archived|sort|author|assignee|review-requested|mentions|involves|reviewed-by)$/i;
+    const labelIsWords = /^[A-Za-z][A-Za-z ]{0,30}$/.test(maybeLabel) && !QUALIFIERS.test(maybeLabel);
+    const restIsQuery = /\b(is|state|archived|sort|author|assignee|review-requested|mentions|involves|reviewed-by):/.test(rest);
+    if (labelIsWords && restIsQuery) {
+      return { label: maybeLabel, query: rest };
+    }
+  }
+  return { label: labelForQuery(raw), query: raw };
+}
+
+/**
+ * Resolve the effective list of {label, query} entries to fetch.
+ * Falls back to the single `query` when no multi-queries are configured.
+ * De-duplicates by query text.
+ * @param {{query: string, queries?: string[]}} settings
+ * @returns {Array<{label: string, query: string}>}
+ */
+export function resolveQueries(settings) {
+  const lines = (settings.queries || []).length > 0 ? settings.queries : [settings.query];
+  const seen = new Set();
+  const out = [];
+  for (const line of lines) {
+    const parsed = parseQueryLine(line);
+    if (!parsed || seen.has(parsed.query)) continue;
+    seen.add(parsed.query);
+    out.push(parsed);
+  }
+  return out.length > 0 ? out : [{ label: labelForQuery(settings.query), query: settings.query }];
 }
 
 /**

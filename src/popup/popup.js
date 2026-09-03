@@ -21,6 +21,12 @@ demoReady.then(async () => {
   // Re-apply once the demo/runtime environment is fully ready.
   await refreshTheme();
 
+  // Report the OS scheme so the toolbar icon can follow the system theme.
+  if (globalThis.chrome?.runtime) {
+    const { reportOsScheme } = await import("../shared/os-scheme.js");
+    reportOsScheme();
+  }
+
   const { elements } = await import("./dom.js");
   const { bindCopilotActions, loadCopilotUsage } = await import("./copilot.js");
   const { loadPRList } = await import("./pr-list.js");
@@ -32,7 +38,11 @@ demoReady.then(async () => {
 
   elements.syncButton.addEventListener("click", async () => {
     elements.syncButton.disabled = true;
-    elements.syncButton.textContent = "Syncing…";
+    // Show a spinning arrow instead of the label while syncing.
+    elements.syncButton.innerHTML =
+      '<svg class="spin" viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-label="Syncing">' +
+      '<path d="M8 3a5 5 0 1 0 4.546 2.914.75.75 0 0 1 1.364-.626A6.5 6.5 0 1 1 8 1.5V0.25a.25.25 0 0 1 .41-.192l2.36 1.966a.25.25 0 0 1 0 .384l-2.36 1.966A.25.25 0 0 1 8 4.18V3Z"/>' +
+      "</svg>";
 
     try {
       await chrome.runtime.sendMessage({ action: "syncNow" });

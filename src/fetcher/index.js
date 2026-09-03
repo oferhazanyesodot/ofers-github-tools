@@ -12,18 +12,38 @@
  */
 
 import { extractPRsFromPayload } from "./parser.js";
-import { getSettings } from "../shared/settings.js";
+import { getSettings, resolveQueries } from "../shared/settings.js";
 import { buildPRUrl } from "../shared/constants.js";
 import { githubFetch } from "../background/github-transport.js";
 
 // ─── Public ──────────────────────────────────────────────────────────────────
 
 /**
- * Fetch and parse the user's open PRs.
+ * Fetch and parse the user's open PRs across all configured queries.
+ *
+ * When multiple queries are configured they are fetched together and merged,
+ * de-duplicated by PR URL (a PR matching several queries appears once).
+ *
  * @returns {Promise<Array | null>} PR list or null if not logged in
  */
 export async function fetchPRs() {
-  const { query } = await getSettings();
+  const settings = await getSettings();
+  const entries = resolveQueries(settings); // [{ label, query }]
+
+  const results = await Promise.all(entries.map((e) => fetchForQuery(e.query)));
+
+  // If every query reports "not logged in", surface that. A single logged-in
+  // query is enough to treat the session as authenticated.
+  if (results.every((r) => r === null)) return null;
+
+  return mergePRs(entries, results);
+}
+
+/**
+ * Fetch and parse a single query's PRs.
+ * @returns {Promise<Array | null>} PR list, or null if not logged in
+ */
+async function fetchForQuery(query) {
   const url = buildPRUrl(query);
 
   // Strategy 1: JSON
@@ -33,6 +53,32 @@ export async function fetchPRs() {
 
   // Strategy 2: HTML fallback
   return await tryFetchHTML(url);
+}
+
+/**
+ * Merge PR lists from multiple queries, de-duplicating by URL. Each PR is
+ * tagged with the label(s) of every query that surfaced it, so the popup and
+ * bookmarks can show where a PR came from.
+ * @param {Array<{label: string, query: string}>} entries
+ * @param {Array<Array | null>} results - fetch result per entry, same order
+ * @returns {Array}
+ */
+function mergePRs(entries, results) {
+  const byUrl = new Map();
+  results.forEach((list, i) => {
+    if (!Array.isArray(list)) return;
+    const label = entries[i].label;
+    for (const pr of list) {
+      if (!pr || !pr.url) continue;
+      const existing = byUrl.get(pr.url);
+      if (existing) {
+        if (!existing.sources.includes(label)) existing.sources.push(label);
+      } else {
+        byUrl.set(pr.url, { ...pr, sources: [label] });
+      }
+    }
+  });
+  return [...byUrl.values()];
 }
 
 // ─── Strategy 1: JSON ────────────────────────────────────────────────────────

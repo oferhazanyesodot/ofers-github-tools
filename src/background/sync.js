@@ -34,7 +34,13 @@ export async function syncPRs() {
     const isFirstSync = !prev.prListInitialized;
     const newPrUrls = isFirstSync ? [] : prs.filter((pr) => !prevUrls.has(pr.url)).map((pr) => pr.url);
 
-    await chrome.storage.local.set({ prList: prs, newPrUrls, prListInitialized: true });
+    // Prune the locally-read set to PRs still in the list, so it doesn't grow
+    // unbounded as PRs are merged/closed.
+    const currentUrls = new Set(prs.map((pr) => pr.url));
+    const prevRead = (await chrome.storage.local.get("readPRs")).readPRs || [];
+    const readPRs = prevRead.filter((url) => currentUrls.has(url));
+
+    await chrome.storage.local.set({ prList: prs, newPrUrls, prListInitialized: true, readPRs });
     await updatePRBadge(prs.length);
     await setStatus("ok", `Synced ${prs.length} PRs at ${new Date().toLocaleTimeString()}`);
   } catch (error) {

@@ -431,6 +431,15 @@ textarea {
   color: var(--accent);
   background: var(--accent-soft);
 }
+/* Active query: the preset is one of the current query lines. */
+.preset-btn.selected {
+  border-color: var(--accent);
+  color: var(--accent-fg);
+  background: var(--accent);
+}
+.preset-btn.selected::before {
+  content: "✓ ";
+}
 
 /* ─── Buttons ───────────────────────────────────────────────────────────── */
 

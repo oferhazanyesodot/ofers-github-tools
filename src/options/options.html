@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ofer's GitHub Tools — Settings</title>
+  <link id="favicon" rel="icon" type="image/png" href="../../icons/icon48-light.png">
   <link rel="stylesheet" href="options.css">
 </head>
 <body>
@@ -32,8 +33,9 @@
       <button type="button" class="preset-btn" data-query="is:pr state:open archived:false sort:updated-desc assignee:@me">Assigned to me</button>
       <button type="button" class="preset-btn" data-query="is:pr state:open archived:false sort:updated-desc mentions:@me">Mentions me</button>
     </div>
-    <input type="text" id="query" placeholder="is:pr state:open archived:false sort:updated-desc author:@me">
-    <p class="hint">Appended to <code>https://github.com/pulls?q=</code></p>
+    <p class="hint">Click presets to toggle them on/off — combine several (e.g. My PRs + Review requested).</p>
+    <textarea id="query" rows="2" placeholder="is:pr state:open archived:false sort:updated-desc author:@me"></textarea>
+    <p class="hint">One query per line — results from all queries are merged and de-duplicated. Each is appended to <code>https://github.com/pulls?q=</code></p>
   </section>
 
   <div class="settings-grid">
@@ -141,7 +143,6 @@
           <span class="suffix">%</span>
         </div>
       </div>
-      <p class="hint">Powers the burn-rate projection in the popup. Toggle off to disable alerts.</p>
     </section>
 
     <!-- Bookmarks -->
@@ -190,7 +191,6 @@
         <label for="exclude-repos">Exclude repositories</label>
         <input type="text" id="exclude-repos" placeholder="repo-name, owner/other-repo">
       </div>
-      <p class="hint">Auto-group turns on subfolders once you have that many repos. Excluded repos are never bookmarked; comma-separated, matches repo name or owner/repo.</p>
     </section>
 
     <!-- PR List -->
@@ -284,7 +284,34 @@
           <span class="toggle-track"></span>
         </label>
       </div>
-      <p class="hint">Unread shows a dot for PRs you haven't opened yet. "New" flags PRs that appeared since the last sync. Created age shows when the PR was opened alongside the last-updated time.</p>
+      <div class="field">
+        <label for="show-repo-owner">Show repo owner</label>
+        <label class="toggle">
+          <input type="checkbox" class="toggle-input" id="show-repo-owner">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="field">
+        <label for="full-timestamp-tooltip">Full date-time on hover</label>
+        <label class="toggle">
+          <input type="checkbox" class="toggle-input" id="full-timestamp-tooltip">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="field">
+        <label for="open-in-current-tab">Open PRs in current tab</label>
+        <label class="toggle">
+          <input type="checkbox" class="toggle-input" id="open-in-current-tab">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="field" id="reuse-tab-field">
+        <label for="reuse-existing-tab">Reuse an already-open tab</label>
+        <label class="toggle">
+          <input type="checkbox" class="toggle-input" id="reuse-existing-tab" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
     </section>
 
   </div>

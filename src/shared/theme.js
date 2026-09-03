@@ -36,6 +36,27 @@ export function applyTheme(settings) {
   // Base font size for the popup (clamped to a sensible range).
   const fontSize = Math.max(11, Math.min(16, Number(settings?.fontSize) || 12));
   root.style.setProperty("--popup-font-size", `${fontSize}px`);
+
+  // Update the page favicon (options tab) to match the theme, if present.
+  updateFavicon(theme);
+}
+
+/**
+ * Point the page's favicon at the icon variant matching the theme, so the
+ * extension's own tabs (e.g. the Settings page) don't show the greyish default.
+ */
+function updateFavicon(theme) {
+  const link = typeof document !== "undefined" && document.getElementById("favicon");
+  if (!link) return;
+
+  const osDark = typeof matchMedia === "function" && matchMedia("(prefers-color-scheme: dark)").matches;
+  const suffix =
+    theme === "light" ? "-light" :
+    theme === "dark" ? "-dark" :
+    theme === "hello-kitty" ? "-kitty" :
+    (osDark ? "-dark" : "-light"); // system → follow OS
+
+  link.href = `../../icons/icon48${suffix}.png`;
 }
 
 function rgba(hex, alpha) {
