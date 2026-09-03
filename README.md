@@ -91,6 +91,22 @@ The tracked `demo/` folder contains local-only preview fixtures and a GitHub-sty
 - **Chrome:** `chrome://extensions` → Developer mode → "Load unpacked" → select the repo root.
 - **Firefox:** `about:debugging#/runtime/this-firefox` → "Load Temporary Add-on" → select `manifest.json`.
 
+### Firefox AMO submission
+
+Submit the same package to addons.mozilla.org with Mozilla's `web-ext` CLI. Get API
+credentials from AMO → **Manage API Keys**, then (do not commit these):
+
+```sh
+node scripts/build.js
+$env:WEB_EXT_API_KEY="user:XXXX:YYY"        # PowerShell; use export on macOS/Linux
+$env:WEB_EXT_API_SECRET="your-secret"
+npx web-ext sign --source-dir dist/pkg --channel=listed --amo-metadata=scripts/amo-metadata.json --no-config
+```
+
+`scripts/amo-metadata.json` supplies the license and category slugs AMO requires for
+listed versions. After signing, the version enters Mozilla's review queue (status
+`nominated`) and goes public once approved. Rotate your API secret when done.
+
 ## Privacy
 
 - **No data leaves your browser.** Everything is processed locally.
