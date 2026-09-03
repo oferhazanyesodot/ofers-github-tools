@@ -227,7 +227,12 @@ for (const size of [16, 48]) {
   console.log(`Created icons/icon${size}.png (${def.length} bytes) - default/system`);
 }
 
-// Store icon: white on dark rounded background
+for (const size of [16, 48, 128]) {
+  const png = encodePNG(drawPRIcon(size, { withBackground: true, glyph: WHITE }), size, size);
+  fs.writeFileSync(path.join(iconsDir, `app-icon${size}.png`), png);
+  console.log(`Created icons/app-icon${size}.png (${png.length} bytes) - branded app icon`);
+}
+
 const size128 = 128;
 const pixels128 = drawPRIcon(size128, { withBackground: true });
 const png128 = encodePNG(pixels128, size128, size128);

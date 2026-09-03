@@ -48,9 +48,7 @@ export async function syncPRs() {
     await setStatus("error", error.message);
   }
 
-  try {
-    await syncCopilotUsage();
-  } catch (error) {
+  syncCopilotUsage().catch((error) => {
     console.warn("[GitHub PR Bookmarks] Copilot usage sync failed:", error.message);
-  }
+  });
 }

@@ -46,7 +46,6 @@ demoReady.then(async () => {
 
     try {
       await chrome.runtime.sendMessage({ action: "syncNow" });
-      await new Promise((resolve) => setTimeout(resolve, 2000));
     } catch (error) {
       console.error("Sync trigger failed:", error);
     }
