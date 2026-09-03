@@ -45,7 +45,7 @@ export function readFormSettings() {
     notifications: elements.notifications.checked,
     staleThresholdDays: readToggledNumber(elements.staleDays, 1, 365, 30),
     excludeRepos: elements.excludeRepos.value.trim(),
-    autoGroupThreshold: readToggledNumber(elements.autoGroupThreshold, 1, 50, 5),
+    autoGroupThreshold: readToggledNumber(elements.autoGroupThreshold, 2, 50, 3),
     bookmarksEnabled: elements.bookmarksEnabled.checked,
     copilotTracking: elements.copilotTracking.checked,
     copilotWorkDays: Math.max(1, Math.min(7, parseInt(elements.copilotWorkdays.value, 10) || DEFAULTS.copilotWorkDays)),

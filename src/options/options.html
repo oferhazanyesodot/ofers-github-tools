@@ -33,7 +33,7 @@
       <button type="button" class="preset-btn" data-query="is:pr state:open archived:false sort:updated-desc assignee:@me">Assigned to me</button>
       <button type="button" class="preset-btn" data-query="is:pr state:open archived:false sort:updated-desc mentions:@me">Mentions me</button>
     </div>
-    <p class="hint">Click presets to toggle them on/off — combine several (e.g. My PRs + Review requested).</p>
+
     <textarea id="query" rows="2" placeholder="is:pr state:open archived:false sort:updated-desc author:@me"></textarea>
     <p class="hint">One query per line — results from all queries are merged and de-duplicated. Each is appended to <code>https://github.com/pulls?q=</code></p>
   </section>
@@ -166,14 +166,14 @@
         </label>
       </div>
       <div class="field">
-        <label for="auto-group-threshold">Auto-group after</label>
+        <label for="auto-group-threshold">Subfolder a repo at</label>
         <div class="input-group toggled">
           <label class="toggle" title="Enable auto-grouping">
-            <input type="checkbox" class="toggle-input" data-toggle-for="auto-group-threshold" data-default="5">
+            <input type="checkbox" class="toggle-input" data-toggle-for="auto-group-threshold" data-default="3">
             <span class="toggle-track"></span>
           </label>
-          <input type="number" id="auto-group-threshold" min="1" max="50" value="5">
-          <span class="suffix">repos</span>
+          <input type="number" id="auto-group-threshold" min="2" max="50" value="3">
+          <span class="suffix">PRs</span>
         </div>
       </div>
       <div class="field">

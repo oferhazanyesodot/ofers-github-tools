@@ -19,11 +19,17 @@ export async function synchronizeBookmarks(prs) {
   const settings = await getSettings();
 
   // Bookmarks feature disabled: tear down any folder we previously created so
-  // the user isn't left with a stale folder, then bail out.
+  // the user isn't left with a stale folder, then bail out. Also clean up a
+  // folder left behind by an earlier rename.
   if (!settings.bookmarksEnabled) {
+    await handleFolderRename(settings.folderName);
     await removeRootFolder(settings.folderName);
     return;
   }
+
+  // If the folder was renamed since the last sync, remove the old folder so we
+  // don't leave an orphaned copy behind.
+  await handleFolderRename(settings.folderName);
 
   const barId = await getBookmarksBarId();
   const rootFolder = await getOrCreateFolder(settings.folderName, barId);
@@ -50,17 +56,15 @@ export async function synchronizeBookmarks(prs) {
   const distinctSources = new Set(current.flatMap((pr) => pr.sources || []));
   const groupBySource = distinctSources.size > 1;
 
-  // Group either when the user opted in, or automatically once the number of
-  // distinct repos reaches the configured auto-group threshold.
-  const distinctRepos = new Set(current.map((pr) => pr.repo)).size;
-  const shouldGroup =
-    settings.groupByRepo ||
-    (settings.autoGroupThreshold > 0 && distinctRepos >= settings.autoGroupThreshold);
-
   if (groupBySource) {
     await syncGroupedBySource(rootFolder, current, settings);
-  } else if (shouldGroup) {
+  } else if (settings.groupByRepo) {
+    // Explicit "group by repository": every repo gets its own subfolder.
     await syncGroupedByRepo(rootFolder, current, settings);
+  } else if (settings.autoGroupThreshold > 0) {
+    // Auto-group per repo: a repo gets a subfolder once it has this many PRs
+    // or more; repos with fewer stay as a flat list at the top level.
+    await syncHybridByRepo(rootFolder, current, settings, settings.autoGroupThreshold);
   } else {
     // Clean up any leftover repo subfolders from when groupByRepo was enabled
     await removeSubfolders(rootFolder.id, ["Old PRs"]);
@@ -157,6 +161,59 @@ async function syncGroupedBySource(rootFolder, prs, settings) {
     const folder = await getOrCreateFolder(label, rootFolder.id);
     await syncFlat(folder, sourcePrs, settings);
   }
+}
+
+// ─── Hybrid Repo Sync (auto-group busy repos only) ───────────────────────────
+
+/**
+ * Hybrid layout: repos with `threshold` or more PRs get their own subfolder;
+ * repos with fewer PRs are kept as a flat list of bookmarks at the top level.
+ * This avoids a pile of single-PR subfolders while still tidying busy repos.
+ *
+ * @param {number} threshold - minimum PRs in a repo before it gets a subfolder
+ */
+async function syncHybridByRepo(rootFolder, prs, settings, threshold) {
+  // Bucket PRs by repo, then decide which repos are "grouped" vs "loose".
+  const byRepo = new Map();
+  for (const pr of prs) {
+    const group = byRepo.get(pr.repo) || [];
+    group.push(pr);
+    byRepo.set(pr.repo, group);
+  }
+
+  const groupedRepos = new Map(); // repo → PRs (gets a subfolder)
+  const loosePrs = [];            // stay flat at the top level
+  for (const [repo, repoPrs] of byRepo) {
+    if (repoPrs.length >= threshold) groupedRepos.set(repo, repoPrs);
+    else loosePrs.push(...repoPrs);
+  }
+
+  // Reconcile the top level: keep loose bookmarks, drop bookmarks that now
+  // belong in a subfolder, and remove subfolders that are no longer grouped.
+  const existingChildren = await chrome.bookmarks.getChildren(rootFolder.id);
+  const looseUrls = new Set(loosePrs.map((pr) => pr.url));
+
+  for (const child of existingChildren) {
+    if (child.url) {
+      // A top-level bookmark that should now live in a subfolder — remove it
+      // here (syncFlat on the subfolder will recreate it).
+      if (!looseUrls.has(child.url)) await chrome.bookmarks.remove(child.id);
+    } else if (child.title !== "Old PRs" && !groupedRepos.has(child.title)) {
+      // A repo subfolder that's no longer grouped (dropped below threshold) —
+      // remove it; its PRs, if still open, are now in the loose list.
+      await chrome.bookmarks.removeTree(child.id);
+    }
+  }
+
+  // Grouped repos → subfolders.
+  for (const [repo, repoPrs] of groupedRepos) {
+    const repoFolder = await getOrCreateFolder(repo, rootFolder.id);
+    await syncFlat(repoFolder, repoPrs, settings);
+  }
+
+  // Loose PRs → flat at the top level. syncFlat only touches bookmarks (not
+  // subfolders), so the grouped subfolders above are left intact.
+  await syncFlat(rootFolder, loosePrs, settings);
 }
 
 // ─── Grouped by Repo Sync ────────────────────────────────────────────────────
@@ -302,6 +359,23 @@ async function getOrCreateFolder(name, parentId) {
   if (anyMatch && parentId === "1") return anyMatch;
 
   return await chrome.bookmarks.create({ parentId, title: name });
+}
+
+/**
+ * When the configured folder name changes between syncs, remove the previously
+ * used folder so a rename moves the PRs into the new folder instead of leaving
+ * an orphaned copy behind. The last-used name is tracked in local storage.
+ */
+async function handleFolderRename(currentName) {
+  const KEY = "bookmarkFolderName";
+  const { [KEY]: previousName } = await chrome.storage.local.get(KEY);
+
+  if (previousName && previousName !== currentName) {
+    await removeRootFolder(previousName);
+  }
+  if (previousName !== currentName) {
+    await chrome.storage.local.set({ [KEY]: currentName });
+  }
 }
 
 /**

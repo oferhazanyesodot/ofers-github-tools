@@ -17,7 +17,7 @@ export const DEFAULTS = {
   notifications: true,
   staleThresholdDays: 0, // 0 = disabled, >0 = move to "Old PRs" subfolder
   excludeRepos: "", // comma-separated repo names/owners to skip when bookmarking
-  autoGroupThreshold: 0, // when groupByRepo is off, auto-group once repo count >= this (0 = never)
+  autoGroupThreshold: 0, // when groupByRepo is off, a repo gets its own subfolder once it has >= this many PRs (0 = never; keep everything flat)
   pinnedPRs: [], // array of PR urls the user has pinned/favorited
   bookmarksEnabled: true, // when false, don't mirror PRs to a bookmark folder
   copilotTracking: true,
