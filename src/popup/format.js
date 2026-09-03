@@ -9,6 +9,23 @@ export function relativeTime(timestamp) {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
+export function absoluteDate(timestamp) {
+  return new Date(timestamp).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+/**
+ * Format a timestamp according to the user's dateFormat setting.
+ * @param {number} timestamp
+ * @param {"relative"|"absolute"} format
+ */
+export function formatDate(timestamp, format) {
+  return format === "absolute" ? absoluteDate(timestamp) : relativeTime(timestamp);
+}
+
 export function escapeHtml(str) {
   return str
     .replace(/&/g, "&amp;")

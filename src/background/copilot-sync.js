@@ -8,13 +8,22 @@ export async function syncCopilotUsage() {
   const settings = await getSettings();
   if (!settings.copilotTracking) return;
 
-  const usage = await fetchCopilotUsage();
-  if (!usage) return;
+  const { usage, error } = await fetchCopilotUsage();
+  if (!usage) {
+    // Preserve the last known usage so we can still show it, but attach the
+    // error so the popup can explain what went wrong (and which URL failed).
+    const previous = await chrome.storage.local.get("copilotUsage");
+    await chrome.storage.local.set({
+      copilotUsage: { ...(previous.copilotUsage || {}), error },
+    });
+    await updateCopilotBadge("error");
+    return;
+  }
 
   const projection = calculateProjection(usage, settings.copilotWorkDays);
   await recordDailyUsage(usage);
-  await chrome.storage.local.set({ copilotUsage: { ...usage, projection } });
-  await updateCopilotBadge(projection.status);
+  await chrome.storage.local.set({ copilotUsage: { ...usage, projection, error: null } });
+  await updateCopilotBadge(projection.status, usage);
   await checkCopilotThreshold(usage, projection, settings);
 }
 

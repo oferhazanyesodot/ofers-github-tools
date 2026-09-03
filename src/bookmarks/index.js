@@ -17,11 +17,26 @@ import { getSettings } from "../shared/settings.js";
  */
 export async function synchronizeBookmarks(prs) {
   const settings = await getSettings();
+
+  // Bookmarks feature disabled: tear down any folder we previously created so
+  // the user isn't left with a stale folder, then bail out.
+  if (!settings.bookmarksEnabled) {
+    await removeRootFolder(settings.folderName);
+    return;
+  }
+
   const barId = await getBookmarksBarId();
   const rootFolder = await getOrCreateFolder(settings.folderName, barId);
 
-  // Sort: non-drafts first, drafts at the end
-  const sorted = [...prs].sort((a, b) => {
+  // Drop excluded repositories entirely.
+  const filtered = filterExcludedRepos(prs, settings.excludeRepos);
+
+  // Sort: pinned first, then non-drafts, drafts at the end.
+  const pinned = new Set(settings.pinnedPRs || []);
+  const sorted = [...filtered].sort((a, b) => {
+    const aPin = pinned.has(a.url);
+    const bPin = pinned.has(b.url);
+    if (aPin !== bPin) return aPin ? -1 : 1;
     if (a.isDraft === b.isDraft) return 0;
     return a.isDraft ? 1 : -1;
   });
@@ -29,7 +44,14 @@ export async function synchronizeBookmarks(prs) {
   // Separate stale PRs if threshold is configured
   const { current, stale } = partitionByAge(sorted, settings.staleThresholdDays);
 
-  if (settings.groupByRepo) {
+  // Group either when the user opted in, or automatically once the number of
+  // distinct repos reaches the configured auto-group threshold.
+  const distinctRepos = new Set(current.map((pr) => pr.repo)).size;
+  const shouldGroup =
+    settings.groupByRepo ||
+    (settings.autoGroupThreshold > 0 && distinctRepos >= settings.autoGroupThreshold);
+
+  if (shouldGroup) {
     await syncGroupedByRepo(rootFolder, current, settings);
   } else {
     // Clean up any leftover repo subfolders from when groupByRepo was enabled
@@ -37,13 +59,14 @@ export async function synchronizeBookmarks(prs) {
     await syncFlat(rootFolder, current, settings);
   }
 
-  // Handle stale PRs
+  // Handle stale PRs.
   if (settings.staleThresholdDays > 0 && stale.length > 0) {
     const staleFolder = await getOrCreateFolder("Old PRs", rootFolder.id);
     await syncFlat(staleFolder, stale, settings);
-  } else if (settings.staleThresholdDays > 0) {
-    // Remove stale folder if empty
-    await removeEmptyFolder("Old PRs", rootFolder.id);
+  } else {
+    // No stale PRs (threshold off, raised, or everything is fresh again).
+    // Prune any bookmarks left in an existing "Old PRs" folder and remove it.
+    await clearAndRemoveFolder("Old PRs", rootFolder.id);
   }
 }
 
@@ -130,6 +153,32 @@ async function syncGroupedByRepo(rootFolder, prs, settings) {
   }
 }
 
+// ─── Exclude Repos ───────────────────────────────────────────────────────────
+
+/**
+ * Remove PRs whose repo matches the exclude list.
+ * Matches against either the short repo name ("repo") or the full
+ * "owner/repo" name, case-insensitively.
+ * @param {Array} prs
+ * @param {string} excludeRepos - comma-separated list
+ */
+function filterExcludedRepos(prs, excludeRepos) {
+  if (!excludeRepos || !excludeRepos.trim()) return prs;
+  const excluded = new Set(
+    excludeRepos
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean)
+  );
+  if (excluded.size === 0) return prs;
+  return prs.filter((pr) => {
+    const repo = (pr.repo || "").toLowerCase();
+    const full = (pr.repoFullName || "").toLowerCase();
+    const owner = full.split("/")[0];
+    return !excluded.has(repo) && !excluded.has(full) && !excluded.has(owner);
+  });
+}
+
 // ─── Stale Detection ─────────────────────────────────────────────────────────
 
 function partitionByAge(prs, thresholdDays) {
@@ -206,13 +255,40 @@ async function getOrCreateFolder(name, parentId) {
   return await chrome.bookmarks.create({ parentId, title: name });
 }
 
-async function removeEmptyFolder(name, parentId) {
+/**
+ * Remove the extension's root bookmark folder entirely (used when the
+ * Bookmarks feature is turned off).
+ */
+async function removeRootFolder(name) {
+  const barId = await getBookmarksBarId();
   const results = await chrome.bookmarks.search({ title: name });
   for (const node of results) {
-    if (!node.url && node.parentId === parentId) {
-      const children = await chrome.bookmarks.getChildren(node.id);
-      if (children.length === 0) {
+    // Only remove a folder sitting at the bookmarks bar / other bookmarks to
+    // avoid nuking an unrelated folder that happens to share the name.
+    if (!node.url && (node.parentId === barId || node.parentId === "1" || node.parentId === "2")) {
+      try {
         await chrome.bookmarks.removeTree(node.id);
+      } catch (e) {
+        console.warn("[GitHub PR Bookmarks] Failed to remove root folder:", e.message);
+      }
+    }
+  }
+}
+
+/**
+ * Remove a named subfolder (and anything left inside it) when it exists under
+ * the given parent. Used to tear down the "Old PRs" folder once there are no
+ * stale PRs — e.g. after raising the threshold so previously-stale PRs are
+ * fresh again, or after disabling archiving entirely.
+ */
+async function clearAndRemoveFolder(name, parentId) {
+  const children = await chrome.bookmarks.getChildren(parentId);
+  for (const child of children) {
+    if (!child.url && child.title === name) {
+      try {
+        await chrome.bookmarks.removeTree(child.id);
+      } catch (e) {
+        console.warn("[GitHub PR Bookmarks] Failed to remove folder:", name, e.message);
       }
     }
   }

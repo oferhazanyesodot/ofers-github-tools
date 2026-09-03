@@ -18,6 +18,7 @@ Automatically maintains a bookmark folder with your open Pull Requests.
 
 - **Automatic sync** every N minutes (configurable, default 5)
 - **Draft indicator** — `[DRAFT]` prefix on draft PRs
+- **Hide drafts** — optionally hide draft PRs from the popup list
 - **Group by repo** — optional subfolders per repository
 - **Desktop notifications** for new PRs
 - **Stale PR detection** — moves untouched PRs to "Old PRs" subfolder
@@ -50,11 +51,11 @@ Monitors your GitHub Copilot AI credit consumption with projections.
 The extension uses your existing GitHub browser session cookies. No API tokens or OAuth registrations needed.
 
 - **PR sync**: Fetches `github.com/pulls?q=...` with `Accept: application/json` to get structured PR data
-- **Copilot tracking**: Fetches `github.com/settings/copilot` and parses the usage counter from the HTML
+- **Copilot tracking**: Fetches `github.com/settings/copilot/features` and parses the "Usage this cycle" counter from the HTML
 - **Revert file**: Loads the GitHub edit page to extract a CSRF token, fetches the file from the base branch, and submits the edit form — same as manually editing via the GitHub web UI
 - **Reset to commit**: Generates the `gh api` command for force-pushing a branch to a specific SHA
 
-**If you can see your PRs at github.com/pulls and your Copilot usage at github.com/settings/copilot, this extension works.**
+**If you can see your PRs at github.com/pulls and your Copilot usage at github.com/settings/copilot/features, this extension works.**
 
 ## Installation
 

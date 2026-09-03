@@ -7,13 +7,25 @@
   <link rel="stylesheet" href="options.css">
 </head>
 <body>
-  <h1>Ofer's GitHub Tools</h1>
-  <p class="subtitle">Configure your GitHub toolkit — PR bookmarks, Copilot usage tracking, and more.</p>
+  <header class="page-header">
+    <span class="logo">
+      <svg viewBox="0 0 16 16" fill="currentColor">
+        <path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354ZM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm0 9.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm8.25.75a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z"/>
+      </svg>
+    </span>
+    <div>
+      <h1>Ofer's GitHub Tools</h1>
+      <p class="subtitle">PR bookmarks, Copilot usage tracking, and review tools.</p>
+    </div>
+    <div class="header-actions">
+      <span class="autosave-note" id="autosave-note">Changes save automatically</span>
+      <button class="btn-secondary" id="reset-btn">Reset to Defaults</button>
+    </div>
+  </header>
 
-  <fieldset>
-    <legend>Query</legend>
-    <label for="query">GitHub search query</label>
-    <p class="hint">Appended to <code>https://github.com/pulls?q=</code></p>
+  <!-- Query -->
+  <section class="card">
+    <div class="card-title">Search Query</div>
     <div class="presets">
       <button type="button" class="preset-btn" data-query="is:pr state:open archived:false sort:updated-desc author:@me">My PRs</button>
       <button type="button" class="preset-btn" data-query="is:pr state:open archived:false sort:updated-desc review-requested:@me">Review requested</button>
@@ -21,87 +33,263 @@
       <button type="button" class="preset-btn" data-query="is:pr state:open archived:false sort:updated-desc mentions:@me">Mentions me</button>
     </div>
     <input type="text" id="query" placeholder="is:pr state:open archived:false sort:updated-desc author:@me">
-  </fieldset>
+    <p class="hint">Appended to <code>https://github.com/pulls?q=</code></p>
+  </section>
 
-  <fieldset>
-    <legend>Sync</legend>
-    <div class="row">
-      <label for="interval">Sync every</label>
-      <input type="number" id="interval" min="1" max="60" value="5">
-      <span>minutes</span>
-    </div>
-    <p class="hint">Minimum 1 minute. Lower values use more resources.</p>
-  </fieldset>
+  <div class="settings-grid">
 
-  <fieldset>
-    <legend>Bookmark Folder</legend>
-    <label for="folder-name">Folder name</label>
-    <input type="text" id="folder-name" placeholder="GitHub PRs">
-    <p class="hint">The folder created in your Bookmarks Bar.</p>
-  </fieldset>
+    <!-- Appearance -->
+    <section class="card">
+      <div class="card-title">Appearance</div>
+      <div class="field">
+        <label for="theme">Theme</label>
+        <select id="theme">
+          <option value="system">System</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+          <option value="hello-kitty">Hello Kitty</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="accent-color">Accent color</label>
+        <div class="swatches" id="accent-swatches">
+          <button type="button" class="swatch" data-color="#1f6feb" style="--sw:#1f6feb" title="Blue" aria-label="Blue"></button>
+          <button type="button" class="swatch" data-color="#8250df" style="--sw:#8250df" title="Purple" aria-label="Purple"></button>
+          <button type="button" class="swatch" data-color="#1a7f37" style="--sw:#1a7f37" title="Green" aria-label="Green"></button>
+          <button type="button" class="swatch" data-color="#bf3989" style="--sw:#bf3989" title="Pink" aria-label="Pink"></button>
+          <button type="button" class="swatch" data-color="#bc4c00" style="--sw:#bc4c00" title="Orange" aria-label="Orange"></button>
+          <button type="button" class="swatch" data-color="#cf222e" style="--sw:#cf222e" title="Red" aria-label="Red"></button>
+          <button type="button" class="swatch swatch-custom" id="accent-custom" title="Custom color" aria-label="Custom color">
+            <input type="color" id="accent-color" value="#1f6feb">
+          </button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="density">Density</label>
+        <select id="density">
+          <option value="comfortable">Comfortable</option>
+          <option value="compact">Compact</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="font-size">Font size</label>
+        <div class="input-group slider-group">
+          <input type="range" id="font-size" min="11" max="16" step="1" value="12">
+          <span class="suffix" id="font-size-value">12px</span>
+        </div>
+      </div>
+    </section>
 
-  <fieldset>
-    <legend>Display</legend>
-    <div class="checkbox-row">
-      <input type="checkbox" id="show-draft" checked>
-      <label for="show-draft">Show [DRAFT] indicator for draft PRs</label>
-    </div>
-    <div class="checkbox-row">
-      <input type="checkbox" id="group-by-repo">
-      <label for="group-by-repo">Group bookmarks by repository (subfolders)</label>
-    </div>
-    <div class="checkbox-row">
-      <input type="checkbox" id="notifications" checked>
-      <label for="notifications">Desktop notification for new PRs</label>
-    </div>
-  </fieldset>
+    <!-- Sync & Badge -->
+    <section class="card">
+      <div class="card-title">Sync &amp; Badge</div>
+      <div class="field">
+        <label for="interval">Sync interval</label>
+        <div class="input-group">
+          <input type="number" id="interval" min="1" max="60" value="5">
+          <span class="suffix">min</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="badge-enabled">Toolbar badge</label>
+        <label class="toggle">
+          <input type="checkbox" class="toggle-input" id="badge-enabled" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="field field-dependent" id="badge-mode-field">
+        <label for="badge-mode">Badge shows</label>
+        <select id="badge-mode">
+          <option value="prCount">Open PR count</option>
+          <option value="copilot">Copilot usage %</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="notifications">Notify me about new PRs</label>
+        <label class="toggle">
+          <input type="checkbox" class="toggle-input" id="notifications" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+    </section>
 
-  <fieldset>
-    <legend>Stale PRs</legend>
-    <div class="row">
-      <label for="stale-days">Move to "Old PRs" after</label>
-      <input type="number" id="stale-days" min="0" max="365" value="0">
-      <span>days</span>
-    </div>
-    <p class="hint">Set to 0 to disable. PRs not updated for this many days will be moved to a subfolder.</p>
-  </fieldset>
+    <!-- Copilot -->
+    <section class="card">
+      <div class="card-title">
+        Copilot Usage
+        <label class="toggle card-toggle" title="Track Copilot credit usage">
+          <input type="checkbox" class="toggle-input" id="copilot-tracking" data-feature-card checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="field">
+        <label for="copilot-workdays">Work days / week</label>
+        <div class="input-group toggled">
+          <span class="toggle-spacer"></span>
+          <input type="number" id="copilot-workdays" min="1" max="7" value="5">
+          <span class="suffix"></span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="copilot-alert">Alert threshold</label>
+        <div class="input-group toggled">
+          <label class="toggle" title="Enable usage alerts">
+            <input type="checkbox" class="toggle-input" data-toggle-for="copilot-alert" data-default="80">
+            <span class="toggle-track"></span>
+          </label>
+          <input type="number" id="copilot-alert" min="1" max="100" value="80">
+          <span class="suffix">%</span>
+        </div>
+      </div>
+      <p class="hint">Powers the burn-rate projection in the popup. Toggle off to disable alerts.</p>
+    </section>
 
-  <fieldset>
-    <legend>Copilot Usage Tracking</legend>
-    <div class="checkbox-row">
-      <input type="checkbox" id="copilot-tracking" checked>
-      <label for="copilot-tracking">Track GitHub Copilot credit usage</label>
-    </div>
-    <p class="hint">Shows a usage bar and burn-rate projection in the popup.</p>
-    <div class="row">
-      <label for="copilot-workdays">Work days per week</label>
-      <input type="number" id="copilot-workdays" min="1" max="7" value="5">
-      <span>days</span>
-    </div>
-    <p class="hint">Used to calculate your daily usage rate and project remaining credits.</p>
-    <div class="row">
-      <label for="copilot-alert">Alert at usage threshold</label>
-      <input type="number" id="copilot-alert" min="0" max="100" value="80">
-      <span>%</span>
-    </div>
-    <p class="hint">Desktop notification when projected usage exceeds this. Set to 0 to disable.</p>
-  </fieldset>
+    <!-- Bookmarks -->
+    <section class="card">
+      <div class="card-title">
+        Bookmarks
+        <label class="toggle card-toggle" title="Mirror your PRs to a bookmark folder">
+          <input type="checkbox" class="toggle-input" id="bookmarks-enabled" data-feature-card checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="field-stack">
+        <label for="folder-name">Folder name</label>
+        <input type="text" id="folder-name" placeholder="GitHub PRs">
+      </div>
+      <div class="field">
+        <label for="group-by-repo">Group by repository</label>
+        <label class="toggle">
+          <input type="checkbox" class="toggle-input" id="group-by-repo">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="field">
+        <label for="auto-group-threshold">Auto-group after</label>
+        <div class="input-group toggled">
+          <label class="toggle" title="Enable auto-grouping">
+            <input type="checkbox" class="toggle-input" data-toggle-for="auto-group-threshold" data-default="5">
+            <span class="toggle-track"></span>
+          </label>
+          <input type="number" id="auto-group-threshold" min="1" max="50" value="5">
+          <span class="suffix">repos</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="stale-days">Archive old PRs after</label>
+        <div class="input-group toggled">
+          <label class="toggle" title="Enable archiving of old PRs">
+            <input type="checkbox" class="toggle-input" data-toggle-for="stale-days" data-default="30">
+            <span class="toggle-track"></span>
+          </label>
+          <input type="number" id="stale-days" min="1" max="365" value="30">
+          <span class="suffix">days</span>
+        </div>
+      </div>
+      <div class="field-stack">
+        <label for="exclude-repos">Exclude repositories</label>
+        <input type="text" id="exclude-repos" placeholder="repo-name, owner/other-repo">
+      </div>
+      <p class="hint">Auto-group turns on subfolders once you have that many repos. Excluded repos are never bookmarked; comma-separated, matches repo name or owner/repo.</p>
+    </section>
 
-  <fieldset>
-    <legend>Import / Export</legend>
-    <p class="hint">Share your configuration across devices or back it up.</p>
-    <div class="actions" style="margin-top: 8px; margin-bottom: 8px;">
-      <button class="btn-secondary" id="export-btn">Export Settings</button>
-      <button class="btn-secondary" id="import-btn">Import Settings</button>
-    </div>
-    <textarea id="import-export-area" rows="4" placeholder="Paste JSON here to import…"></textarea>
-  </fieldset>
+    <!-- PR List -->
+    <section class="card">
+      <div class="card-title">PR List</div>
+      <div class="field">
+        <label for="sort-order">Sort by</label>
+        <select id="sort-order">
+          <option value="updated">Recently updated</option>
+          <option value="created">Recently created</option>
+          <option value="title">Title (A–Z)</option>
+          <option value="repo">Repository</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="date-format">Date format</label>
+        <select id="date-format">
+          <option value="relative">Relative (2d ago)</option>
+          <option value="absolute">Absolute date</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="max-prs">Limit shown</label>
+        <div class="input-group toggled">
+          <label class="toggle" title="Limit the number of PRs shown">
+            <input type="checkbox" class="toggle-input" data-toggle-for="max-prs" data-default="20">
+            <span class="toggle-track"></span>
+          </label>
+          <input type="number" id="max-prs" min="1" max="100" value="20">
+          <span class="suffix">PRs</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="show-draft-prs">Show draft PRs</label>
+        <label class="toggle">
+          <input type="checkbox" class="toggle-input" id="show-draft-prs" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="field field-dependent" id="show-draft-field">
+        <label for="show-draft">Show [DRAFT] indicator</label>
+        <label class="toggle">
+          <input type="checkbox" class="toggle-input" id="show-draft" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="field">
+        <label for="show-pr-number">Show PR number (#1234)</label>
+        <label class="toggle">
+          <input type="checkbox" class="toggle-input" id="show-pr-number">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="field">
+        <label for="show-copy-all">Copy all URLs button</label>
+        <label class="toggle">
+          <input type="checkbox" class="toggle-input" id="show-copy-all" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+    </section>
 
-  <div class="actions">
-    <button class="btn-primary" id="save-btn">Save Settings</button>
-    <button class="btn-secondary" id="reset-btn">Reset to Defaults</button>
+    <!-- PR Details -->
+    <section class="card">
+      <div class="card-title">PR Details</div>
+      <div class="field">
+        <label for="show-comment-count">Comment count</label>
+        <label class="toggle">
+          <input type="checkbox" class="toggle-input" id="show-comment-count" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="field">
+        <label for="show-unread">Unread indicator</label>
+        <label class="toggle">
+          <input type="checkbox" class="toggle-input" id="show-unread" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="field">
+        <label for="show-new-tag">"New" tag on fresh PRs</label>
+        <label class="toggle">
+          <input type="checkbox" class="toggle-input" id="show-new-tag" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="field">
+        <label for="show-created-age">Show created age</label>
+        <label class="toggle">
+          <input type="checkbox" class="toggle-input" id="show-created-age">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <p class="hint">Unread shows a dot for PRs you haven't opened yet. "New" flags PRs that appeared since the last sync. Created age shows when the PR was opened alongside the last-updated time.</p>
+    </section>
+
   </div>
-  <div class="toast" id="toast">Settings saved. Syncing now…</div>
+
+  <div class="toast" id="toast">Saved</div>
 
   <script src="options.js" type="module"></script>
 </body>

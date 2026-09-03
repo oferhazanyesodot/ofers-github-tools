@@ -14,7 +14,7 @@ export function bindCopilotActions() {
   });
 
   elements.copilotTitle.addEventListener("click", () => {
-    chrome.tabs.create({ url: "https://github.com/settings/copilot" });
+    chrome.tabs.create({ url: "https://github.com/settings/copilot/features" });
   });
 }
 
@@ -36,6 +36,26 @@ export async function loadCopilotUsage() {
   elements.copilotBody.classList.toggle("collapsed", settings.copilotCollapsed);
   elements.copilotCollapse.textContent = settings.copilotCollapsed ? "▸" : "▾";
 
+  const hasUsageData = typeof usage.used === "number" && typeof usage.limit === "number";
+
+  // Surface any fetch error so failures aren't silent.
+  if (usage.error) {
+    renderError(usage.error, hasUsageData);
+  } else {
+    elements.copilotError.classList.add("hidden");
+  }
+
+  // If we only have an error and no usage numbers, stop after showing it.
+  if (!hasUsageData) {
+    elements.copilotStats.textContent = "—";
+    elements.copilotBarContainer.classList.add("hidden");
+    elements.copilotDetails.textContent = "";
+    elements.copilotProjection.textContent = "";
+    elements.copilotSparkline.style.display = "none";
+    return;
+  }
+  elements.copilotBarContainer.classList.remove("hidden");
+
   const { used, limit, percentage, daysUntilReset, projection } = usage;
   const remaining = limit - used;
   elements.copilotStats.textContent = `${used.toLocaleString()} / ${limit.toLocaleString()}`;
@@ -55,6 +75,38 @@ export async function loadCopilotUsage() {
   }
 
   await renderSparkline();
+}
+
+function renderError(error, hasUsageData) {
+  const time = new Date(error.fetchedAt || Date.now()).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const statusPart = error.status ? ` (HTTP ${error.status})` : "";
+  const prefix = hasUsageData ? "Couldn't refresh" : "Couldn't load usage";
+
+  elements.copilotError.classList.remove("hidden");
+  elements.copilotError.textContent = "";
+
+  const line = document.createElement("div");
+  line.className = "copilot-error-msg";
+  line.textContent = `⚠️ ${prefix}: ${error.message}${statusPart} · ${time}`;
+  elements.copilotError.appendChild(line);
+
+  if (error.url) {
+    const urlLine = document.createElement("div");
+    urlLine.className = "copilot-error-url";
+    urlLine.textContent = error.url;
+    urlLine.title = error.url;
+    elements.copilotError.appendChild(urlLine);
+  }
+
+  if (hasUsageData) {
+    const stale = document.createElement("div");
+    stale.className = "copilot-error-stale";
+    stale.textContent = "Showing last known values.";
+    elements.copilotError.appendChild(stale);
+  }
 }
 
 async function renderSparkline() {

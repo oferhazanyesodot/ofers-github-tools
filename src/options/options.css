@@ -1,166 +1,480 @@
-/* Options page styles — GitHub-inspired, light/dark mode */
+/* ══════════════════════════════════════════════════════════════════════════
+   Ofer's GitHub Tools — Settings
+   A cohesive design system driven by theme tokens.
+   ══════════════════════════════════════════════════════════════════════════ */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* ─── Theme tokens ──────────────────────────────────────────────────────── */
+
+:root {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #f6f8fa;
+  --border: #e1e4e8;
+  --border-strong: #d0d7de;
+  --fg: #1f2328;
+  --fg-muted: #656d76;
+  --fg-subtle: #8c959f;
+  --accent: #1f6feb;
+  --accent-hover: #1a5fd4;
+  --accent-soft: rgba(31, 111, 235, 0.12);
+  --accent-fg: #ffffff;
+  --shadow: 0 1px 2px rgba(31, 35, 40, 0.06), 0 3px 8px rgba(31, 35, 40, 0.04);
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+:root[data-theme="light"] {
+  --bg: #f4f5f7; --surface: #ffffff; --surface-2: #f6f8fa;
+  --border: #e1e4e8; --border-strong: #d0d7de;
+  --fg: #1f2328; --fg-muted: #656d76; --fg-subtle: #8c959f;
+}
+
+:root[data-theme="dark"] {
+  --bg: #0a0c10; --surface: #12161c; --surface-2: #1a1f26;
+  --border: #262c34; --border-strong: #333b44;
+  --fg: #e6edf3; --fg-muted: #9198a1; --fg-subtle: #6b7280;
+  --accent-soft: rgba(88, 166, 255, 0.15);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --bg: #0a0c10; --surface: #12161c; --surface-2: #1a1f26;
+    --border: #262c34; --border-strong: #333b44;
+    --fg: #e6edf3; --fg-muted: #9198a1; --fg-subtle: #6b7280;
+    --accent-soft: rgba(88, 166, 255, 0.15);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+}
+
+:root[data-theme="hello-kitty"] {
+  --bg: #fff5fa; --surface: #ffffff; --surface-2: #fff0f6;
+  --border: #ffd6e8; --border-strong: #ffb3d1;
+  --fg: #5b2333; --fg-muted: #a15c74; --fg-subtle: #c98da3;
+  --accent-soft: rgba(255, 95, 162, 0.14);
+  --shadow: 0 1px 2px rgba(214, 51, 108, 0.08), 0 4px 12px rgba(214, 51, 108, 0.06);
+}
+
+/* ─── Base ──────────────────────────────────────────────────────────────── */
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-  max-width: 600px;
-  margin: 40px auto;
-  padding: 20px;
-  color: #24292f;
-  background: #ffffff;
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 28px 28px 40px;
+  color: var(--fg);
+  background: var(--bg);
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  /* Scale the whole settings UI down 5% so the Import & Export card clears the
+     viewport bottom without scrolling. */
+  zoom: 0.95;
 }
 
-h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
-.subtitle { font-size: 13px; color: #57606a; margin-bottom: 24px; }
+/* ─── Header ────────────────────────────────────────────────────────────── */
 
-fieldset {
-  border: 1px solid #d0d7de;
-  border-radius: 6px;
-  padding: 16px;
-  margin-bottom: 16px;
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 28px;
 }
 
-legend { font-size: 14px; font-weight: 600; padding: 0 8px; }
-label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
-.hint { font-size: 12px; color: #57606a; margin-bottom: 8px; }
+.header-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
 
-input[type="text"], input[type="number"], textarea {
-  width: 100%;
-  padding: 8px 12px;
-  font-size: 13px;
-  border: 1px solid #d0d7de;
-  border-radius: 6px;
-  background: #f6f8fa;
-  color: #24292f;
+.autosave-note {
+  font-size: 12px;
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .page-header { flex-wrap: wrap; }
+  .header-actions { width: 100%; margin-left: 0; }
+  .header-actions .btn-secondary { flex: 1; }
+  .autosave-note { display: none; }
+}
+
+.page-header .logo {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+.page-header .logo svg { width: 22px; height: 22px; }
+
+h1 { font-size: 22px; font-weight: 650; letter-spacing: -0.01em; }
+.subtitle { font-size: 13px; color: var(--fg-muted); margin-top: 1px; }
+
+/* ─── Cards / grid ──────────────────────────────────────────────────────── */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  box-shadow: var(--shadow);
+}
+
+.card + .card { margin-top: 16px; }
+
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fg-subtle);
   margin-bottom: 12px;
-  font-family: inherit;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
 }
 
-input[type="number"] { width: 80px; margin-top: 4px; }
+/* A toggle pinned to the right edge of a card header, used to enable/disable
+   the whole feature the card controls. */
+.card-title .card-toggle {
+  margin-left: auto;
+}
+
+/* When a card's master toggle is off, dim and disable its body controls so it
+   reads as inactive without hiding what the card does. */
+.card.feature-off .field,
+.card.feature-off .field-stack,
+.card.feature-off > .hint {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* Row-based grid. Cards in a row stretch to equal height so bottom edges
+   align cleanly. Hints inside a card are pushed to the bottom (see .card),
+   so the extra height is used deliberately instead of leaving a floating gap. */
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: stretch;
+  gap: 16px;
+  margin-top: 16px;
+}
+.settings-grid .card {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 900px) { .settings-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .settings-grid { grid-template-columns: 1fr; } }
+
+/* ─── Field rows ────────────────────────────────────────────────────────── */
+
+.field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 32px;
+}
+.field + .field { margin-top: 8px; }
+
+.field > label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg);
+  flex-shrink: 0;
+}
+
+.field-stack { display: block; }
+.field-stack > label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: var(--fg);
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--fg-muted);
+  line-height: 1.4;
+  margin-top: 12px;
+}
+/* A trailing hint inside a stretched card sinks to the bottom edge so the
+   card's spare height reads as intentional padding, not a floating gap. */
+.settings-grid .card > .hint:last-child {
+  margin-top: auto;
+  padding-top: 12px;
+}
+.hint code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+/* ─── Inputs ────────────────────────────────────────────────────────────── */
+
+input[type="text"],
+select,
+textarea {
+  width: 100%;
+  padding: 8px 11px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--fg);
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+input[type="text"]:focus,
+select:focus,
+textarea:focus,
+input[type="number"]:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.field select,
+.field input[type="text"] { width: auto; flex: 1 1 55%; min-width: 130px; }
+
+input[type="number"] {
+  width: 68px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--fg);
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  text-align: center;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.field .suffix { font-size: 12px; color: var(--fg-muted); flex-shrink: 0; }
+
+.input-group { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+/* Toggled numeric fields share one column layout so every toggle, number box
+   and unit label lines up vertically across all cards. */
+.input-group.toggled {
+  display: grid;
+  grid-template-columns: auto 68px 34px;
+  align-items: center;
+  gap: 8px;
+}
+/* Extra breathing room between the on/off toggle and its number field. */
+.input-group.toggled .toggle { margin-right: 8px; }
+.input-group.toggled .suffix { text-align: left; }
+/* Occupies the toggle column so a toggle-less number field lines its box up
+   with the toggled rows above/below it. Matches toggle track width + margin. */
+.input-group.toggled .toggle-spacer {
+  width: 30px;
+  margin-right: 8px;
+}
+
+/* ─── Inline toggle (for "0 = off" numeric fields) ──────────────────────── */
+
+.toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.toggle .toggle-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.toggle .toggle-track {
+  width: 30px;
+  height: 17px;
+  border-radius: 999px;
+  background: var(--border-strong);
+  transition: background 0.15s;
+  position: relative;
+  flex-shrink: 0;
+}
+.toggle .toggle-track::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s;
+}
+.toggle .toggle-input:checked + .toggle-track {
+  background: var(--accent);
+}
+.toggle .toggle-input:checked + .toggle-track::after {
+  transform: translateX(13px);
+}
+.toggle .toggle-input:focus-visible + .toggle-track {
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* A number field that's been switched off reads as disabled/greyed out. */
+input[type="number"]:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* A dependent field whose parent toggle is off: dim and make inert. */
+.field.dependent-off {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.slider-group { flex: 1 1 55%; min-width: 130px; }
+.slider-group input[type="range"] {
+  flex: 1;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.slider-group .suffix { min-width: 34px; text-align: right; }
 
 textarea {
   resize: vertical;
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1.5;
 }
 
-.row {
+/* ─── Accent color swatches ─────────────────────────────────────────────── */
+
+.swatches {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 7px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
-.row label { margin-bottom: 0; white-space: nowrap; }
-
-/* ─── Checkboxes ────────────────────────────────────────────────────────── */
-
-.checkbox-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
+.swatch {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: var(--sw, var(--surface-2));
+  cursor: pointer;
+  box-shadow: 0 0 0 1px var(--border-strong);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.swatch:hover { transform: scale(1.12); }
+.swatch.selected {
+  border-color: var(--surface);
+  box-shadow: 0 0 0 2px var(--accent);
 }
 
-.checkbox-row input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  accent-color: #1f6feb;
+/* Custom color swatch — a rainbow ring that hosts the native color input */
+.swatch-custom {
+  position: relative;
+  overflow: hidden;
+  background: conic-gradient(
+    from 0deg,
+    #f87171, #fbbf24, #34d399, #22d3ee, #60a5fa, #a78bfa, #f472b6, #f87171
+  );
 }
-
-.checkbox-row label {
-  display: inline;
-  font-weight: 400;
-  margin-bottom: 0;
+.swatch-custom input[type="color"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  opacity: 0;
   cursor: pointer;
 }
+.swatch-custom.selected {
+  border-color: var(--surface);
+  box-shadow: 0 0 0 2px var(--accent);
+}
 
-/* ─── Presets ───────────────────────────────────────────────────────────── */
+/* ─── Preset pills ──────────────────────────────────────────────────────── */
 
-.presets { margin-bottom: 12px; }
-
+.presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .preset-btn {
-  display: inline-block;
-  padding: 4px 10px;
-  font-size: 11px;
-  border: 1px solid #d0d7de;
-  border-radius: 20px;
-  background: #f6f8fa;
-  color: #24292f;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--fg-muted);
   cursor: pointer;
-  margin: 2px 4px 2px 0;
+  transition: all 0.12s;
 }
-.preset-btn:hover { background: #eaeef2; }
+.preset-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
 
 /* ─── Buttons ───────────────────────────────────────────────────────────── */
 
-.actions { display: flex; gap: 8px; margin-top: 16px; }
-
 button {
-  padding: 8px 16px;
+  font-family: inherit;
   font-size: 13px;
-  font-weight: 500;
-  border-radius: 6px;
+  font-weight: 550;
+  padding: 9px 18px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background 0.1s;
+  transition: all 0.12s;
+  border: 1px solid transparent;
 }
 
 .btn-primary {
-  background: #1f6feb;
-  color: #ffffff;
-  border: 1px solid #1f6feb;
+  background: var(--accent);
+  color: var(--accent-fg);
+  border-color: var(--accent);
 }
-.btn-primary:hover { background: #1a5fd4; }
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 
 .btn-secondary {
-  background: #f6f8fa;
-  color: #24292f;
-  border: 1px solid #d0d7de;
+  background: var(--surface);
+  color: var(--fg);
+  border-color: var(--border-strong);
 }
-.btn-secondary:hover { background: #eaeef2; }
+.btn-secondary:hover { background: var(--surface-2); border-color: var(--accent); }
 
 /* ─── Toast ─────────────────────────────────────────────────────────────── */
 
 .toast {
-  margin-top: 12px;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  display: none;
-  background: #dafbe1;
-  color: #116329;
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  background: #1a7f37;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
 }
-.toast.show { display: block; }
-
-/* ─── Dark Mode ─────────────────────────────────────────────────────────── */
-
-@media (prefers-color-scheme: dark) {
-  body { background: #0d1117; color: #e6edf3; }
-  .subtitle, .hint { color: #8b949e; }
-
-  fieldset { border-color: #30363d; }
-  label { color: #e6edf3; }
-
-  input[type="text"], input[type="number"], textarea {
-    border-color: #30363d;
-    background: #161b22;
-    color: #e6edf3;
-  }
-
-  .preset-btn {
-    border-color: #30363d;
-    background: #21262d;
-    color: #e6edf3;
-  }
-  .preset-btn:hover { background: #30363d; }
-
-  .btn-secondary {
-    background: #21262d;
-    color: #e6edf3;
-    border-color: #30363d;
-  }
-  .btn-secondary:hover { background: #30363d; }
-
-  .toast { background: #0f291a; color: #3fb950; }
-}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }

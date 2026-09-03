@@ -27,6 +27,7 @@
       <span class="copilot-collapse" id="copilot-collapse" title="Toggle">▾</span>
     </div>
     <div class="copilot-body" id="copilot-body">
+      <div class="copilot-error hidden" id="copilot-error"></div>
       <div class="copilot-bar-container" id="copilot-bar-container" title="">
         <div class="copilot-bar" id="copilot-bar"></div>
         <div class="copilot-bar-projected" id="copilot-bar-projected"></div>
@@ -37,6 +38,9 @@
     </div>
   </div>
 
+  <div class="pr-list-header">
+    <button id="copy-all-btn" class="copy-all-btn hidden" title="Copy all PR URLs">Copy all URLs</button>
+  </div>
   <div id="pr-list" class="pr-list"></div>
 
   <div class="actions">

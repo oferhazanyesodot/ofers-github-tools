@@ -9,7 +9,7 @@ This extension does not sell or share personal data with third parties. It proce
 ## What data is accessed
 
 - The extension fetches `https://github.com/pulls` using your existing browser session to read your open pull request list.
-- The extension fetches `https://github.com/settings/copilot` using your existing browser session to read your Copilot AI credit usage.
+- The extension fetches `https://github.com/settings/copilot/features` using your existing browser session to read your Copilot AI credit usage.
 - Requests are sent only to `github.com` and use your existing GitHub session.
 - No analytics, telemetry, or tracking of any kind exists in this extension.
 
@@ -32,7 +32,7 @@ This extension does not sell or share personal data with third parties. It proce
 The extension makes two requests per sync cycle (default every 5 minutes):
 
 1. `https://github.com/pulls?q=...` — fetches your open PR list
-2. `https://github.com/settings/copilot` — fetches your Copilot usage stats (if tracking is enabled)
+2. `https://github.com/settings/copilot/features` — fetches your Copilot usage stats (if tracking is enabled)
 
 No other network requests are made. No external services are contacted.
 

@@ -1,7 +1,10 @@
 import { elements } from "./dom.js";
 
-export function showToast(message) {
+let toastTimer = null;
+
+export function showToast(message, duration = 3000) {
   elements.toast.textContent = message;
   elements.toast.classList.add("show");
-  setTimeout(() => elements.toast.classList.remove("show"), 3000);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => elements.toast.classList.remove("show"), duration);
 }

@@ -11,8 +11,10 @@ export const elements = {
   copilotBarContainer: document.getElementById("copilot-bar-container"),
   copilotDetails: document.getElementById("copilot-details"),
   copilotProjection: document.getElementById("copilot-projection"),
+  copilotError: document.getElementById("copilot-error"),
   copilotTitle: document.getElementById("copilot-title-link"),
   copilotBody: document.getElementById("copilot-body"),
   copilotCollapse: document.getElementById("copilot-collapse"),
   copilotSparkline: document.getElementById("copilot-sparkline"),
+  copyAllButton: document.getElementById("copy-all-btn"),
 };

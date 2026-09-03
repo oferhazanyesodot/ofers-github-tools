@@ -25,7 +25,16 @@ export async function syncPRs() {
   try {
     await notifyNewPRs(prs);
     await synchronizeBookmarks(prs);
-    await chrome.storage.local.set({ prList: prs });
+
+    // Tag PRs that weren't present in the previous sync so the popup can flag
+    // them as "new". Skip this on the very first sync (no baseline yet) to
+    // avoid marking every PR as new.
+    const prev = await chrome.storage.local.get(["prList", "prListInitialized"]);
+    const prevUrls = new Set((prev.prList || []).map((pr) => pr.url));
+    const isFirstSync = !prev.prListInitialized;
+    const newPrUrls = isFirstSync ? [] : prs.filter((pr) => !prevUrls.has(pr.url)).map((pr) => pr.url);
+
+    await chrome.storage.local.set({ prList: prs, newPrUrls, prListInitialized: true });
     await updatePRBadge(prs.length);
     await setStatus("ok", `Synced ${prs.length} PRs at ${new Date().toLocaleTimeString()}`);
   } catch (error) {

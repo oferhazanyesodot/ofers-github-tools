@@ -46,10 +46,27 @@ export function extractPRsFromPayload(data) {
       number: item.number || 0,
       isDraft: item.isDraft || false,
       updatedAt: item.updatedAt || new Date().toISOString(),
+      createdAt: item.createdAt || item.updatedAt || new Date().toISOString(),
+      // Enrichment — only fields the pulls dashboard payload actually provides.
+      commentCount: extractCommentCount(item),
+      unread: item.isReadByCurrentUser === false,
     });
   }
 
   return prs.length > 0 ? prs : null;
+}
+
+/**
+ * Extract a comment/conversation count if present.
+ */
+function extractCommentCount(item) {
+  const raw =
+    item.commentsCount ??
+    item.totalCommentsCount ??
+    item.comments?.totalCount ??
+    item.commentCount;
+  const num = Number(raw);
+  return Number.isFinite(num) && num > 0 ? num : undefined;
 }
 
 /**

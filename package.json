@@ -1,0 +1,23 @@
+{
+  "name": "pr-live-folder",
+  "version": "1.0.0",
+  "description": "A Chrome extension that bundles personal GitHub productivity tools into one lightweight package — all powered by your existing GitHub session. No OAuth, no tokens, no backend.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oferhazanyesodot/ofers-github-tools.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/oferhazanyesodot/ofers-github-tools/issues"
+  },
+  "homepage": "https://github.com/oferhazanyesodot/ofers-github-tools#readme",
+  "dependencies": {
+    "puppeteer-core": "^25.9.0"
+  }
+}
