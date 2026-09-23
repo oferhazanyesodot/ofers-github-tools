@@ -359,6 +359,102 @@ h1 {
   font-weight: 600;
 }
 
+/* ─── Linked-branch groups ──────────────────────────────────────────────── */
+
+/* A group bundles PRs that share a branch across 2+ repos. The header names
+   the branch; the items nest under it with a left rail for a visual grouping. */
+.pr-group {
+  margin: 2px 0;
+}
+
+.pr-group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 8px;
+  min-height: 34px;
+  box-sizing: border-box;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.pr-group-header:hover {
+  background: var(--hover);
+}
+
+/* Group controls stay visible so the header keeps a consistent layout; the
+   star stays lit when the whole group is starred. */
+.pr-group-header .pr-group-pin,
+.pr-group-header .pr-group-copy {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.pr-group-header .pr-group-pin:hover { opacity: 1; color: #d4a017; }
+.pr-group-header .pr-group-copy:hover { opacity: 1; color: var(--accent); }
+
+.pr-group-header .pr-group-pin.active {
+  opacity: 1;
+  color: #d4a017;
+}
+
+/* Chevron points down when expanded, right when collapsed. */
+.pr-group-header .pr-group-chevron {
+  flex-shrink: 0;
+  color: var(--muted);
+  transform: rotate(90deg);
+  transition: transform 0.12s ease;
+}
+
+.pr-group.collapsed .pr-group-header .pr-group-chevron {
+  transform: rotate(0deg);
+}
+
+/* Collapsed: only the header row shows. */
+.pr-group.collapsed .pr-group-items {
+  display: none;
+}
+
+.pr-group-header .pr-group-icon {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.pr-group-header .pr-group-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pr-group-header .pr-group-count {
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: 9px;
+  font-weight: 500;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: var(--accent-soft, rgba(31, 111, 235, 0.12));
+  color: var(--accent);
+}
+
+/* Nested items sit under the header with a subtle left rail. */
+.pr-group-items {
+  border-left: 2px solid var(--accent-soft, rgba(31, 111, 235, 0.25));
+  margin-left: 13px;
+}
+
+.pr-list.compact .pr-group-header { padding: 6px 8px; min-height: 28px; font-size: 10px; }
+
 /* ─── Unread dot ────────────────────────────────────────────────────────── */
 
 .pr-unread {

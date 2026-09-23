@@ -15,6 +15,7 @@
  * @property {string} updatedAt - ISO date string
  * @property {number} number
  * @property {string} repoFullName - "owner/repo"
+ * @property {string} branch - head ref/branch name (may be "")
  */
 
 /**
@@ -44,6 +45,10 @@ export function extractPRsFromPayload(data) {
       repoFullName: repoNameWithOwner,
       title,
       number: item.number || 0,
+      // Head branch name — used to group the same branch across repos. The
+      // pulls dashboard payload isn't guaranteed to include it, so fall back
+      // to "" and let the popup group by title in that case.
+      branch: extractBranch(item),
       isDraft: item.isDraft || false,
       updatedAt: item.updatedAt || new Date().toISOString(),
       createdAt: item.createdAt || item.updatedAt || new Date().toISOString(),
@@ -67,6 +72,22 @@ function extractCommentCount(item) {
     item.commentCount;
   const num = Number(raw);
   return Number.isFinite(num) && num > 0 ? num : undefined;
+}
+
+/**
+ * Extract the head branch (source ref) name from a payload item, checking the
+ * field spellings GitHub has used across payload versions. Returns "" when
+ * none is present.
+ */
+function extractBranch(item) {
+  const raw =
+    item.headRefName ??
+    item.headRef ??
+    item.branch ??
+    item.headBranch ??
+    item.head?.ref ??
+    item.headRef?.name;
+  return typeof raw === "string" ? raw.trim() : "";
 }
 
 /**

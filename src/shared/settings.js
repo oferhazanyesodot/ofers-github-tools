@@ -41,6 +41,7 @@ export const DEFAULTS = {
   showCreatedAge: false, // show "opened Xd ago" (created) alongside updated time
   showNewTag: true, // tag PRs that appeared since the previous sync
   showRepoOwner: false, // show "owner/repo" instead of just "repo"
+  groupBySharedBranch: false, // group PRs that share a branch name across 2+ repos ("linked branches")
   fullTimestampTooltip: false, // always show exact date-time in the age tooltip
   openInCurrentTab: false, // open PRs in the current tab instead of a new one
   reuseExistingTab: true, // focus an already-open tab for the PR instead of duplicating
@@ -90,6 +91,7 @@ export async function getSettings() {
     showCreatedAge: s.showCreatedAge ?? DEFAULTS.showCreatedAge,
     showNewTag: s.showNewTag ?? DEFAULTS.showNewTag,
     showRepoOwner: s.showRepoOwner ?? DEFAULTS.showRepoOwner,
+    groupBySharedBranch: s.groupBySharedBranch ?? DEFAULTS.groupBySharedBranch,
     fullTimestampTooltip: s.fullTimestampTooltip ?? DEFAULTS.fullTimestampTooltip,
     openInCurrentTab: s.openInCurrentTab ?? DEFAULTS.openInCurrentTab,
     reuseExistingTab: s.reuseExistingTab ?? DEFAULTS.reuseExistingTab,
@@ -188,6 +190,28 @@ export async function togglePinnedPR(url) {
   const next = [...pinned];
   await saveSettings({ ...settings, pinnedPRs: next });
   return next;
+}
+
+/**
+ * Pin or unpin a whole set of PR urls at once (used by "star the group"). If
+ * every url is already pinned, they are all unpinned; otherwise any missing
+ * ones are pinned. Persists once.
+ * @param {string[]} urls
+ * @returns {Promise<{pinned: string[], nowPinned: boolean}>} updated list and
+ *   whether the group ended up pinned.
+ */
+export async function togglePinnedGroup(urls) {
+  const settings = await getSettings();
+  const pinned = new Set(settings.pinnedPRs);
+  const allPinned = urls.length > 0 && urls.every((u) => pinned.has(u));
+  if (allPinned) {
+    for (const u of urls) pinned.delete(u);
+  } else {
+    for (const u of urls) pinned.add(u);
+  }
+  const next = [...pinned];
+  await saveSettings({ ...settings, pinnedPRs: next });
+  return { pinned: next, nowPinned: !allPinned };
 }
 
 /**

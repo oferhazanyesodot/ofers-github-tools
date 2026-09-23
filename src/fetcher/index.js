@@ -224,6 +224,14 @@ async function ensureOffscreenDocument() {
     return;
   }
 
+  // The "offscreen" permission is Chrome-only and declared as optional so the
+  // manifest stays valid in Firefox (which rejects it as a required permission).
+  // Request it on demand here — this path only runs in Chrome.
+  if (chrome.permissions?.request) {
+    const granted = await chrome.permissions.request({ permissions: ["offscreen"] });
+    if (!granted) throw new Error("Offscreen permission was not granted");
+  }
+
   await chrome.offscreen.createDocument({
     url: "src/offscreen/offscreen.html",
     reasons: ["DOM_PARSER"],

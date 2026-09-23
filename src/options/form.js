@@ -64,6 +64,7 @@ export function readFormSettings() {
     showCreatedAge: elements.showCreatedAge.checked,
     showNewTag: elements.showNewTag.checked,
     showRepoOwner: elements.showRepoOwner.checked,
+    groupBySharedBranch: elements.groupBySharedBranch.checked,
     fullTimestampTooltip: elements.fullTimestampTooltip.checked,
     openInCurrentTab: elements.openInCurrentTab.checked,
     reuseExistingTab: elements.reuseExistingTab.checked,
@@ -128,6 +129,7 @@ function applyFormSettings(settings) {
   elements.showCreatedAge.checked = settings.showCreatedAge;
   elements.showNewTag.checked = settings.showNewTag;
   elements.showRepoOwner.checked = settings.showRepoOwner;
+  elements.groupBySharedBranch.checked = settings.groupBySharedBranch;
   elements.fullTimestampTooltip.checked = settings.fullTimestampTooltip;
   elements.openInCurrentTab.checked = settings.openInCurrentTab;
   elements.reuseExistingTab.checked = settings.reuseExistingTab;

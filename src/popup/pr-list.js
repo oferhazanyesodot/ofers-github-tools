@@ -1,4 +1,4 @@
-import { getSettings, togglePinnedPR } from "../shared/settings.js";
+import { getSettings, togglePinnedPR, togglePinnedGroup } from "../shared/settings.js";
 import { elements } from "./dom.js";
 import { copySvg, escapeHtml, formatDate } from "./format.js";
 
@@ -8,15 +8,19 @@ let newUrls = new Set();
 // URLs the user opened from the popup — treated as read locally so the unread
 // dot clears immediately, without waiting for GitHub to report it read.
 let readUrls = new Set();
+// Branch keys whose linked-branch group the user has collapsed. Persisted in
+// chrome.storage.local so the collapsed/expanded state survives reopening.
+let collapsedGroups = new Set();
 
 export async function loadPRList() {
   const [data, settings] = await Promise.all([
-    chrome.storage.local.get(["prList", "newPrUrls", "readPRs"]),
+    chrome.storage.local.get(["prList", "newPrUrls", "readPRs", "collapsedGroups"]),
     getSettings(),
   ]);
   currentSettings = settings;
   newUrls = new Set(data.newPrUrls || []);
   readUrls = new Set(data.readPRs || []);
+  collapsedGroups = new Set(data.collapsedGroups || []);
   let prs = data.prList || [];
 
   const excluded = parseExcluded(settings.excludeRepos);
@@ -49,7 +53,14 @@ export async function loadPRList() {
   for (const pr of prs) for (const s of pr.sources || []) distinctSources.add(s);
   const showSources = distinctSources.size > 1;
 
-  let html = capped.map((pr) => renderPRItem(pr, settings, pinned, newUrls, showSources, readUrls)).join("");
+  const renderItem = (pr) => renderPRItem(pr, settings, pinned, newUrls, showSources, readUrls);
+
+  let html;
+  if (settings.groupBySharedBranch) {
+    html = renderGrouped(capped, renderItem, pinned);
+  } else {
+    html = capped.map(renderItem).join("");
+  }
   if (hiddenCount > 0) {
     html += `<div class="pr-more">+${hiddenCount} more</div>`;
   }
@@ -91,6 +102,125 @@ function sortPRs(prs, order, pinned = new Set()) {
 function date(value) {
   const t = value ? new Date(value).getTime() : 0;
   return Number.isFinite(t) ? t : 0;
+}
+
+/**
+ * Normalize the key used to link PRs across repos. Prefer the branch name
+ * (what actually ties work together across repos); fall back to the title when
+ * the payload didn't carry a branch. Case/whitespace-insensitive.
+ */
+function groupKey(pr) {
+  const raw = (pr.branch && pr.branch.trim()) || pr.title || "";
+  return raw.trim().toLowerCase();
+}
+
+/**
+ * A human label for a group heading: the branch name when we have one,
+ * otherwise the shared title.
+ */
+function groupLabel(prs) {
+  const withBranch = prs.find((pr) => pr.branch && pr.branch.trim());
+  return withBranch ? withBranch.branch.trim() : (prs[0].title || "");
+}
+
+/**
+ * Render the list with "linked branch" grouping: any key shared by 2+ PRs
+ * across distinct repos is rendered under a single collapsible-looking header;
+ * everything else is rendered flat. Group order follows the position of each
+ * group's first (already-sorted) member, interleaved with ungrouped items so
+ * the overall sort order is preserved.
+ */
+function renderGrouped(prs, renderItem, pinned = new Set()) {
+  const buckets = new Map();
+  for (const pr of prs) {
+    const key = groupKey(pr);
+    if (!key) continue;
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(pr);
+  }
+
+  // A bucket only counts as a group when the branch spans 2+ distinct repos.
+  const grouped = new Set();
+  for (const [key, items] of buckets) {
+    const repos = new Set(items.map((pr) => (pr.repoFullName || pr.repo || "").toLowerCase()));
+    if (items.length >= 2 && repos.size >= 2) {
+      grouped.add(key);
+    }
+  }
+
+  const emittedGroups = new Set();
+  const out = [];
+  for (const pr of prs) {
+    const key = groupKey(pr);
+    if (grouped.has(key)) {
+      // Emit the whole group once, at the position of its first member.
+      if (emittedGroups.has(key)) continue;
+      emittedGroups.add(key);
+      const items = buckets.get(key);
+      out.push(renderGroup(key, groupLabel(items), items, renderItem, pinned));
+    } else {
+      out.push(renderItem(pr));
+    }
+  }
+  return out.join("");
+}
+
+/**
+ * Wrap a set of linked PRs in a group container with a header showing the
+ * shared branch and how many repos it spans. The header is a click target that
+ * collapses/expands the members; when collapsed only the header row shows.
+ */
+function renderGroup(key, label, items, renderItem, pinned = new Set()) {
+  const repoCount = new Set(items.map((pr) => (pr.repoFullName || pr.repo || "").toLowerCase())).size;
+  const collapsed = collapsedGroups.has(key);
+  const groupClass = collapsed ? "pr-group collapsed" : "pr-group";
+  const tip = collapsed
+    ? `Expand — ${escapeHtml(label)} across ${repoCount} repositories`
+    : `Collapse — ${escapeHtml(label)} across ${repoCount} repositories`;
+
+  // The group star is "active" only when every member PR is pinned.
+  const urls = items.map((pr) => pr.url);
+  const allPinned = urls.length > 0 && urls.every((u) => pinned.has(u));
+  // Space-delimited: newlines don't survive HTML attribute parsing, but URLs
+  // never contain spaces, so we split on whitespace when reading back.
+  const urlData = escapeHtml(urls.join(" "));
+
+  return `
+    <div class="${groupClass}" data-group="${escapeHtml(key)}">
+      <div class="pr-group-header" data-group="${escapeHtml(key)}" title="${tip}">
+        <svg class="pr-group-chevron" viewBox="0 0 16 16" fill="currentColor" width="10" height="10">
+          <path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/>
+        </svg>
+        <svg class="pr-group-icon" viewBox="0 0 16 16" fill="currentColor" width="12" height="12">
+          <path d="M9.5 3.25a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25Zm-6 0a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Zm8.25-.75a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5ZM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Z"/>
+        </svg>
+        <span class="pr-group-label">${escapeHtml(label)}</span>
+        <span class="pr-group-count">${repoCount} repos</span>
+        <div class="pr-group-pin ${allPinned ? "active" : ""}" data-urls="${urlData}" title="${allPinned ? "Unstar group" : "Star whole group"}">
+          ${starSvg(allPinned)}
+        </div>
+        <div class="pr-group-copy" data-urls="${urlData}" title="Copy all ${items.length} PR URLs">
+          ${copySvg()}
+        </div>
+      </div>
+      <div class="pr-group-items">
+        ${items.map(renderItem).join("")}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Toggle a group's collapsed state and persist it. Returns the updated set.
+ */
+async function toggleGroupCollapsed(key) {
+  if (collapsedGroups.has(key)) {
+    collapsedGroups.delete(key);
+  } else {
+    collapsedGroups.add(key);
+  }
+  await chrome.storage.local.set({ collapsedGroups: [...collapsedGroups] });
+  return collapsedGroups;
 }
 
 function parseExcluded(excludeRepos) {
@@ -139,6 +269,45 @@ function bindItemEvents() {
       const url = item.dataset.url;
       await markRead(url);
       await openPR(url);
+    });
+  });
+
+  // Copy every PR url in the group.
+  elements.prList.querySelectorAll(".pr-group-copy").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+      const urls = (button.dataset.urls || "").split(/\s+/).filter(Boolean);
+      navigator.clipboard.writeText(urls.join("\n"));
+      button.innerHTML = "✓";
+      setTimeout(() => {
+        button.innerHTML = copySvg();
+      }, 1500);
+    });
+  });
+
+  // Star/unstar the whole group (pins or unpins all its member PRs).
+  elements.prList.querySelectorAll(".pr-group-pin").forEach((button) => {
+    button.addEventListener("click", async (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+      const urls = (button.dataset.urls || "").split(/\s+/).filter(Boolean);
+      const { pinned } = await togglePinnedGroup(urls);
+      if (currentSettings) currentSettings.pinnedPRs = pinned;
+      // Re-render so pinned items float up and every star reflects the change.
+      await loadPRList();
+    });
+  });
+
+  // Clicking a group header collapses/expands its members. Toggle the class in
+  // place (no full re-render) so the popup doesn't flicker or lose scroll.
+  elements.prList.querySelectorAll(".pr-group-header").forEach((header) => {
+    header.addEventListener("click", async (event) => {
+      event.stopPropagation();
+      const key = header.dataset.group;
+      await toggleGroupCollapsed(key);
+      const group = header.closest(".pr-group");
+      group?.classList.toggle("collapsed");
     });
   });
 }

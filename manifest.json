@@ -1,15 +1,17 @@
 {
   "manifest_version": 3,
   "name": "Ofer's GitHub Tools",
-  "version": "2.8.3",
+  "version": "2.9.0",
   "description": "Sync GitHub pull requests to bookmarks, track Copilot usage, and add practical pull request review tools.",
   "permissions": [
     "bookmarks",
     "alarms",
     "storage",
-    "offscreen",
     "notifications",
     "cookies"
+  ],
+  "optional_permissions": [
+    "offscreen"
   ],
   "host_permissions": [
     "https://github.com/*"

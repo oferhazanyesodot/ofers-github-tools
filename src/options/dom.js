@@ -26,6 +26,7 @@ export const elements = {
   showCreatedAge: document.getElementById("show-created-age"),
   showNewTag: document.getElementById("show-new-tag"),
   showRepoOwner: document.getElementById("show-repo-owner"),
+  groupBySharedBranch: document.getElementById("group-shared-branch"),
   fullTimestampTooltip: document.getElementById("full-timestamp-tooltip"),
   openInCurrentTab: document.getElementById("open-in-current-tab"),
   reuseExistingTab: document.getElementById("reuse-existing-tab"),
