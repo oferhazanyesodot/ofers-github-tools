@@ -4,7 +4,10 @@
   "description": "A Chrome extension that bundles personal GitHub productivity tools into one lightweight package — all powered by your existing GitHub session. No OAuth, no tokens, no backend.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "node scripts/build.js",
+    "lint:firefox": "npm run build && web-ext lint --source-dir dist/pkg",
+    "deploy:firefox": "npm run build && web-ext sign --source-dir dist/pkg --channel listed --artifacts-dir web-ext-artifacts"
   },
   "repository": {
     "type": "git",
@@ -19,5 +22,8 @@
   "homepage": "https://github.com/oferhazanyesodot/ofers-github-tools#readme",
   "dependencies": {
     "puppeteer-core": "^25.9.0"
+  },
+  "devDependencies": {
+    "web-ext": "^10.7.0"
   }
 }
