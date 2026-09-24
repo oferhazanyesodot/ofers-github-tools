@@ -31,9 +31,11 @@ export async function enrichWithBranches(prs) {
   const store = await chrome.storage.local.get(CACHE_KEY);
   const cache = store[CACHE_KEY] || {};
 
-  // Which PRs still need a branch resolved.
+  // Which PRs still need a branch resolved. A cached value of "" means "already
+  // looked, found nothing" — use `in` so that empty result still counts as
+  // cached and we don't re-fetch it every sync.
   const toFetch = prs.filter(
-    (pr) => pr && pr.url && !(pr.branch && pr.branch.trim()) && !cache[pr.url]
+    (pr) => pr && pr.url && !(pr.branch && pr.branch.trim()) && !(pr.url in cache)
   );
 
   let fetched = 0;
