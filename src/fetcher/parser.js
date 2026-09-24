@@ -80,14 +80,16 @@ function extractCommentCount(item) {
  * none is present.
  */
 function extractBranch(item) {
-  const raw =
+  // The /pulls dashboard payload does not currently carry the head branch (only
+  // headSha), so this is normally "". If GitHub ever adds it, this picks it up
+  // and the per-PR branch fetch in branches.js is skipped. Branch grouping
+  // otherwise relies on that fetch.
+  const direct =
     item.headRefName ??
-    item.headRef ??
     item.branch ??
     item.headBranch ??
-    item.head?.ref ??
-    item.headRef?.name;
-  return typeof raw === "string" ? raw.trim() : "";
+    item.head?.ref;
+  return typeof direct === "string" ? direct.trim() : "";
 }
 
 /**

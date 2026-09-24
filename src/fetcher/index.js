@@ -12,6 +12,7 @@
  */
 
 import { extractPRsFromPayload } from "./parser.js";
+import { enrichWithBranches } from "./branches.js";
 import { getSettings, resolveQueries } from "../shared/settings.js";
 import { buildPRUrl } from "../shared/constants.js";
 import { githubFetch } from "../background/github-transport.js";
@@ -36,7 +37,14 @@ export async function fetchPRs() {
   // query is enough to treat the session as authenticated.
   if (results.every((r) => r === null)) return null;
 
-  return mergePRs(entries, results);
+  const merged = mergePRs(entries, results);
+
+  // Only spend per-PR requests resolving branch names when the user has the
+  // linked-branch grouping turned on (grouping is the only consumer).
+  if (settings.groupBySharedBranch) {
+    return await enrichWithBranches(merged);
+  }
+  return merged;
 }
 
 /**

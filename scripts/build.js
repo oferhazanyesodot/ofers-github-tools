@@ -74,6 +74,7 @@ const files = [
   "src/bookmarks/index.js",
   "src/fetcher/index.js",
   "src/fetcher/parser.js",
+  "src/fetcher/branches.js",
   "src/copilot/fetcher.js",
   "src/copilot/projection.js",
 ];
